@@ -68,14 +68,12 @@ pub const Statement = union(enum(u8)) {
 };
 
 pub const LetStatement = struct {
-    allocator: std.mem.Allocator,
     token: Token,
     name: *Identifier,
     value: *Expression,
 
     pub fn init(allocator: std.mem.Allocator, token: Token) *LetStatement {
         const ls = allocator.create(LetStatement) catch @panic("OOM");
-        ls.allocator = allocator;
         ls.token = token;
         return ls;
     }
@@ -94,13 +92,11 @@ pub const LetStatement = struct {
 };
 
 pub const ReturnStatement = struct {
-    allocator: std.mem.Allocator,
     token: Token,
     return_value: *Expression,
 
     pub fn init(allocator: std.mem.Allocator, token: Token) *ReturnStatement {
         const rs = allocator.create(ReturnStatement) catch @panic("OOM");
-        rs.allocator = allocator;
         rs.token = token;
         return rs;
     }
@@ -117,13 +113,11 @@ pub const ReturnStatement = struct {
 };
 
 pub const ExpressionStatement = struct {
-    allocator: std.mem.Allocator,
     token: Token,
     expression: *Expression,
 
     pub fn init(allocator: std.mem.Allocator, token: Token) *ExpressionStatement {
         const es = allocator.create(ExpressionStatement) catch @panic("OOM");
-        es.allocator = allocator;
         es.token = token;
         return es;
     }
@@ -140,13 +134,11 @@ pub const ExpressionStatement = struct {
 pub const BlockStatement = struct {
     token: Token,
     statements: std.ArrayList(*Statement),
-    allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator, token: Token) *BlockStatement {
         const bs = allocator.create(BlockStatement) catch @panic("OOM");
         bs.token = token;
-        bs.statements = std.ArrayList(*Statement).initCapacity(allocator, 0) catch @panic("OOM");
-        bs.allocator = allocator;
+        bs.statements = .empty;
         return bs;
     }
 
@@ -295,20 +287,13 @@ pub const FunctionLiteral = struct {
     token: Token,
     parameters: std.ArrayList(*Identifier),
     body: *BlockStatement,
-    allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator, token: Token) *FunctionLiteral {
         const f = allocator.create(FunctionLiteral) catch @panic("OOM");
         f.token = token;
-        f.parameters = std.ArrayList(*Identifier).initCapacity(allocator, 0) catch @panic("OOM");
+        f.parameters = .empty;
         f.body = undefined;
-        f.allocator = allocator;
         return f;
-    }
-
-    pub fn deinit(self: *FunctionLiteral) void {
-        self.parameters.deinit(self.allocator);
-        self.body.deinit();
     }
 
     pub fn tokenLiteral(self: FunctionLiteral) []const u8 {
@@ -335,19 +320,13 @@ pub const CallExpression = struct {
     token: Token,
     function: *Expression,
     arguments: std.ArrayList(*Expression),
-    allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator, token: Token, function: *Expression) *CallExpression {
         const ce = allocator.create(CallExpression) catch @panic("OOM");
         ce.token = token;
         ce.function = function;
-        ce.arguments = std.ArrayList(*Expression).initCapacity(allocator, 0) catch @panic("OOM");
-        ce.allocator = allocator;
+        ce.arguments = .empty;
         return ce;
-    }
-
-    pub fn deinit(self: *CallExpression) void {
-        self.arguments.deinit(self.allocator);
     }
 
     pub fn tokenLiteral(self: CallExpression) []const u8 {

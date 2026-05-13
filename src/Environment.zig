@@ -1,19 +1,18 @@
 const std = @import("std");
 
 const Builtins = @import("Builtins.zig");
-const Globals = @import("Globals.zig");
 const Object = @import("Object.zig");
 
 const Environment = @This();
+
+allocator: std.mem.Allocator,
+store: std.StringHashMap(*Object.Object),
+outer: ?*Environment,
 
 pub var TRUE: *Object.Object = undefined;
 pub var FALSE: *Object.Object = undefined;
 pub var NULL: *Object.Object = undefined;
 pub var builtins: std.StringHashMap(*Object.Object) = undefined;
-
-allocator: std.mem.Allocator,
-store: std.StringHashMap(*Object.Object),
-outer: ?*Environment,
 
 pub fn init(allocator: std.mem.Allocator) *Environment {
     TRUE = createObjectBoolean(allocator, true);
@@ -28,19 +27,7 @@ pub fn init(allocator: std.mem.Allocator) *Environment {
         .store = std.StringHashMap(*Object.Object).init(allocator),
         .outer = null,
     };
-    Globals.envAppend(env);
     return env;
-}
-
-pub fn deinit(self: *Environment) void {
-    self.allocator.destroy(TRUE.boolean);
-    self.allocator.destroy(TRUE);
-    self.allocator.destroy(FALSE.boolean);
-    self.allocator.destroy(FALSE);
-    self.allocator.destroy(NULL.null);
-    self.allocator.destroy(NULL);
-
-    builtins.deinit();
 }
 
 pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) *Environment {
@@ -48,8 +35,6 @@ pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) *Environ
     env.allocator = self.allocator;
     env.store = std.StringHashMap(*Object.Object).init(self.allocator);
     env.outer = outer;
-
-    Globals.envAppend(env);
 
     return env;
 }
@@ -113,22 +98,21 @@ test "TestEnvironment" {
         .{ "let a = 50; let b = a; a + b;", 100 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node, env);
 

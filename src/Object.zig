@@ -1,12 +1,7 @@
 const std = @import("std");
 
+const Ast = @import("Ast.zig");
 const Environment = @import("Environment.zig");
-const Ast = @import("Ast/Ast.zig");
-
-// const Ast = struct {
-//     usingnamespace @import("Expression.zig");
-//     usingnamespace @import("Statement.zig");
-// };
 
 const ObjectType = []const u8;
 pub const BuiltinFunction = *const fn (args: std.ArrayList(*Object)) *Object;
@@ -62,7 +57,7 @@ pub const Integer = struct {
 pub const Boolean = struct {
     value: bool,
 
-    pub fn inspect(self: Boolean, writer: anytype) !void {
+    pub fn inspect(self: Boolean, writer: *std.Io.Writer) !void {
         try writer.print("{}", .{self.value});
     }
 
@@ -72,7 +67,7 @@ pub const Boolean = struct {
 };
 
 pub const Null = struct {
-    pub fn inspect(_: Null, writer: anytype) !void {
+    pub fn inspect(_: Null, writer: *std.Io.Writer) !void {
         try writer.writeAll("null");
     }
 
@@ -84,7 +79,7 @@ pub const Null = struct {
 pub const ReturnValue = struct {
     value: *Object,
 
-    pub fn inspect(self: ReturnValue, writer: anytype) anyerror!void {
+    pub fn inspect(self: ReturnValue, writer: *std.Io.Writer) anyerror!void {
         switch (self.value.*) {
             inline else => |x| try x.inspect(writer),
         }
@@ -98,7 +93,7 @@ pub const ReturnValue = struct {
 pub const Error = struct {
     message: []const u8,
 
-    pub fn inspect(self: Error, writer: anytype) !void {
+    pub fn inspect(self: Error, writer: *std.Io.Writer) !void {
         try writer.print("ERROR: {s}", .{self.message});
     }
 
@@ -112,7 +107,7 @@ pub const Function = struct {
     body: *Ast.BlockStatement,
     env: *Environment,
 
-    pub fn inspect(self: Function, writer: anytype) !void {
+    pub fn inspect(self: Function, writer: *std.Io.Writer) !void {
         try writer.writeAll("fn");
         try writer.writeAll("(");
         const size = self.parameters.items.len;
@@ -135,7 +130,7 @@ pub const Function = struct {
 pub const String = struct {
     value: []const u8,
 
-    pub fn inspect(self: String, writer: anytype) !void {
+    pub fn inspect(self: String, writer: *std.Io.Writer) !void {
         try writer.writeAll(self.value);
     }
 
@@ -147,7 +142,7 @@ pub const String = struct {
 pub const Builtin = struct {
     function: BuiltinFunction,
 
-    pub fn inspect(_: Builtin, writer: anytype) !void {
+    pub fn inspect(_: Builtin, writer: *std.Io.Writer) !void {
         try writer.writeAll("builtin function");
     }
 
@@ -159,7 +154,7 @@ pub const Builtin = struct {
 pub const Array = struct {
     elements: std.ArrayList(*Object),
 
-    pub fn inspect(self: Array, writer: anytype) anyerror!void {
+    pub fn inspect(self: Array, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("[");
 
         const size = self.elements.items.len;
@@ -193,7 +188,7 @@ pub const Context = struct {
 pub const Hash = struct {
     pairs: std.HashMap(HashKey, HashPair, Context, std.hash_map.default_max_load_percentage),
 
-    pub fn inspect(self: Hash, writer: anytype) anyerror!void {
+    pub fn inspect(self: Hash, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("{");
 
         const size = self.pairs.count();

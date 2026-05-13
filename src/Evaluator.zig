@@ -1,26 +1,16 @@
 const std = @import("std");
 
+const Ast = @import("Ast.zig");
 const Environment = @import("Environment.zig");
-const Globals = @import("Globals.zig");
 const Lexer = @import("Lexer.zig");
 const Object = @import("Object.zig");
 const Parser = @import("Parser.zig");
-const Ast = @import("Ast/Ast.zig");
-
-const Program = @import("Ast.zig").Program;
-const Node = @import("Ast.zig").Node;
-
-// const Ast = struct {
-//     usingnamespace @import("Ast.zig");
-//     usingnamespace @import("Expression.zig");
-//     usingnamespace @import("Statement.zig");
-// };
 
 const Evaluator = @This();
 
-const checkParserErrors = Parser.checkParserErrors;
-
 allocator: std.mem.Allocator,
+
+const checkParserErrors = Parser.checkParserErrors;
 
 pub fn init(allocator: std.mem.Allocator) Evaluator {
     return Evaluator{
@@ -28,7 +18,7 @@ pub fn init(allocator: std.mem.Allocator) Evaluator {
     };
 }
 
-pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
+pub fn eval(self: *Evaluator, node: *Ast.Node, env: *Environment) ?*Object.Object {
     switch (node.*) {
         .program => {
             return self.evalProgram(node, env);
@@ -37,7 +27,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
             switch (x.*) {
                 .return_statement => |y| {
                     const new_node = self.createNode();
-                    new_node.* = Node{ .expression = y.return_value };
+                    new_node.* = Ast.Node{ .expression = y.return_value };
 
                     const result = self.eval(new_node, env);
                     if (isError(result)) {
@@ -54,13 +44,13 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                 },
                 .expression_statement => |y| {
                     const new_node = self.createNode();
-                    new_node.* = Node{ .expression = y.expression };
+                    new_node.* = Ast.Node{ .expression = y.expression };
 
                     return self.eval(new_node, env);
                 },
                 .let_statement => |y| {
                     const new_node = self.createNode();
-                    new_node.* = Node{ .expression = y.value };
+                    new_node.* = Ast.Node{ .expression = y.value };
 
                     const result = self.eval(new_node, env);
                     if (isError(result)) {
@@ -84,7 +74,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                 },
                 .prefix_expression => |y| {
                     const new_right_node = self.createNode();
-                    new_right_node.* = Node{ .expression = y.right };
+                    new_right_node.* = Ast.Node{ .expression = y.right };
 
                     const right = self.eval(new_right_node, env);
                     if (isError(right)) {
@@ -95,7 +85,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                 .infix_expression => |y| {
                     // left
                     const new_left_node = self.createNode();
-                    new_left_node.* = Node{ .expression = y.left };
+                    new_left_node.* = Ast.Node{ .expression = y.left };
 
                     const left = self.eval(new_left_node, env);
                     if (isError(left)) {
@@ -103,7 +93,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                     }
                     // rigth
                     const new_right_node = self.createNode();
-                    new_right_node.* = Node{ .expression = y.right };
+                    new_right_node.* = Ast.Node{ .expression = y.right };
 
                     const right = self.eval(new_right_node, env);
                     if (isError(right)) {
@@ -133,7 +123,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                 },
                 .call_expression => |y| {
                     const new_node = self.createNode();
-                    new_node.* = Node{ .expression = y.function };
+                    new_node.* = Ast.Node{ .expression = y.function };
 
                     const result = self.eval(new_node, env);
 
@@ -142,8 +132,6 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                     }
 
                     const args = self.evalExpressions(y.arguments, env);
-
-                    Globals.argsAppend(args);
 
                     if (args.items.len == 1 and isError(args.items[0])) {
                         return args.items[0];
@@ -176,7 +164,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                 .index_expression => |y| {
                     // left
                     const new_left_node = self.createNode();
-                    new_left_node.* = Node{ .expression = y.left };
+                    new_left_node.* = Ast.Node{ .expression = y.left };
 
                     const left = self.eval(new_left_node, env);
                     if (isError(left)) {
@@ -184,7 +172,7 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
                     }
                     // index
                     const new_index_node = self.createNode();
-                    new_index_node.* = Node{ .expression = y.index };
+                    new_index_node.* = Ast.Node{ .expression = y.index };
 
                     const index = self.eval(new_index_node, env);
                     if (isError(index)) {
@@ -203,12 +191,12 @@ pub fn eval(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
     return null;
 }
 
-fn evalProgram(self: *Evaluator, node: *Node, env: *Environment) ?*Object.Object {
+fn evalProgram(self: *Evaluator, node: *Ast.Node, env: *Environment) ?*Object.Object {
     var result: ?*Object.Object = null;
 
     for (node.program.statements.items) |stmt| {
         const new_node = self.createNode();
-        new_node.* = Node{ .statement = stmt };
+        new_node.* = Ast.Node{ .statement = stmt };
 
         result = self.eval(new_node, env);
 
@@ -366,7 +354,6 @@ fn evalStringInfixExpression(self: *Evaluator, op: []const u8, left: *Object.Obj
 
     const slice = &[_][]const u8{ left.string.value, right.string.value };
     const s = std.mem.concat(self.allocator, u8, slice) catch @panic("OOM");
-    Globals.stringAppend(s);
 
     const new_string_obj = self.allocator.create(Object.String) catch @panic("OOM");
     new_string_obj.value = s;
@@ -379,7 +366,7 @@ fn evalStringInfixExpression(self: *Evaluator, op: []const u8, left: *Object.Obj
 
 fn evalIfExpression(self: *Evaluator, ie: *Ast.IfExpression, env: *Environment) *Object.Object {
     const new_node = self.createNode();
-    new_node.* = Node{ .expression = ie.condition };
+    new_node.* = Ast.Node{ .expression = ie.condition };
 
     const condition = self.eval(new_node, env);
     if (isError(condition)) {
@@ -410,7 +397,7 @@ fn evalExpressions(self: *Evaluator, exps: std.ArrayList(*Ast.Expression), env: 
     var result = std.ArrayList(*Object.Object).initCapacity(self.allocator, 0) catch @panic("OOM");
     for (exps.items) |e| {
         const new_node = self.createNode();
-        new_node.* = Node{ .expression = e };
+        new_node.* = Ast.Node{ .expression = e };
 
         const evaluated = self.eval(new_node, env).?;
         if (isError(evaluated)) {
@@ -484,7 +471,7 @@ fn evalHashLiteral(self: *Evaluator, node: *Ast.HashLiteral, env: *Environment) 
         const value_node = entry.value_ptr.*;
 
         const new_key_node = self.createNode();
-        new_key_node.* = Node{ .expression = key_node };
+        new_key_node.* = Ast.Node{ .expression = key_node };
         var key = self.eval(new_key_node, env);
 
         if (isError(key)) {
@@ -500,7 +487,7 @@ fn evalHashLiteral(self: *Evaluator, node: *Ast.HashLiteral, env: *Environment) 
         }
 
         const new_value_node = self.createNode();
-        new_value_node.* = Node{ .expression = value_node };
+        new_value_node.* = Ast.Node{ .expression = value_node };
         const value = self.eval(new_value_node, env);
 
         if (isError(value)) {
@@ -564,15 +551,13 @@ fn isError(obj: ?*Object.Object) bool {
     return std.mem.eql(u8, obj.?.getType(), Object.ERROR_OBJ);
 }
 
-fn createNode(self: *Evaluator) *Node {
-    const new_node = self.allocator.create(Node) catch @panic("OOM");
-    Globals.nodeAppend(new_node);
+fn createNode(self: *Evaluator) *Ast.Node {
+    const new_node = self.allocator.create(Ast.Node) catch @panic("OOM");
     return new_node;
 }
 
 fn createObject(self: *Evaluator) *Object.Object {
     const new_obj = self.allocator.create(Object.Object) catch @panic("OOM");
-    Globals.objectAppend(new_obj);
     return new_obj;
 }
 
@@ -615,22 +600,21 @@ test "TestEvalIntegerExpression" {
         .{ "(5 + 10 * 2 + 15 / 3) * 2 + -10", 50 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -671,22 +655,21 @@ test "TestEvalBooleanExpression" {
         .{ "(1 > 2) == false", true },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -712,22 +695,21 @@ test "TestBangOperator" {
         .{ "!!5", true },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -755,22 +737,21 @@ test "TestIfElseExpressions" {
         .{ "if (1 < 2) { 10 } else { 20 }", 10 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -802,22 +783,21 @@ test "TestReturnStatements" {
         .{ "9; return 2 * 5; 9;", 10 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -883,22 +863,21 @@ test "TestErrorHandling" {
         },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -922,22 +901,21 @@ test "TestLetStatements" {
         .{ "let a = 5; let b = a; let c = a + b + 5; c;", 15 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -952,21 +930,20 @@ test "TestLetStatements" {
 test "TestFunctionObject" {
     const input = "fn(x) { x + 2; };";
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const result = evaluator.eval(node_program, env);
 
@@ -1006,22 +983,21 @@ test "TestFunctionApplication" {
         .{ "fn(x) { x; }(5)", 5 },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -1043,21 +1019,20 @@ test "TestClosures" {
         \\addTwo(2);
     ;
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const result = evaluator.eval(node_program, env);
 
@@ -1073,21 +1048,20 @@ test "TestStringLiteral" {
         \\"Hello World!"
     ;
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const result = evaluator.eval(node_program, env);
 
@@ -1103,21 +1077,20 @@ test "TestStringConcatenation" {
         \\"Hello" + " " + "World!";
     ;
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const result = evaluator.eval(node_program, env);
 
@@ -1145,22 +1118,21 @@ test "TestBuiltinFunctions" {
         .{ "len(\"one\", \"two\")", .{ .string = "wrong number of arguments. got=2, want=1" } },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -1185,21 +1157,20 @@ test "TestBuiltinFunctions" {
 test "TestArrayLiterals" {
     const input = "[1, 2 * 2, 3 + 3]";
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const result = evaluator.eval(node_program, env);
 
@@ -1269,22 +1240,21 @@ test "TestArrayIndexExpressions" {
         },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 
@@ -1305,7 +1275,11 @@ test "TestArrayIndexExpressions" {
 }
 
 test "TestHashLiterals" {
-    const ta = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const HashType = std.HashMap(Object.HashKey, i64, Object.Context, std.hash_map.default_max_load_percentage);
     const S = struct {
         var obj1: Object.Object = undefined;
@@ -1314,39 +1288,39 @@ test "TestHashLiterals" {
         var obj4: Object.Object = undefined;
         var obj5: Object.Object = undefined;
         var obj6: Object.Object = undefined;
-        fn createHashMap() !HashType {
+        fn createHashMap(a: std.mem.Allocator) !HashType {
             obj1 = blk: {
-                const new_string_obj = try ta.create(Object.String);
+                const new_string_obj = try a.create(Object.String);
                 new_string_obj.value = "one";
                 break :blk Object.Object{ .string = new_string_obj };
             };
             obj2 = blk: {
-                const new_string_obj = try ta.create(Object.String);
+                const new_string_obj = try a.create(Object.String);
                 new_string_obj.value = "two";
                 break :blk Object.Object{ .string = new_string_obj };
             };
             obj3 = blk: {
-                const new_string_obj = try ta.create(Object.String);
+                const new_string_obj = try a.create(Object.String);
                 new_string_obj.value = "three";
                 break :blk Object.Object{ .string = new_string_obj };
             };
             obj4 = blk: {
-                const new_integer_obj = try ta.create(Object.Integer);
+                const new_integer_obj = try a.create(Object.Integer);
                 new_integer_obj.value = 4;
                 break :blk Object.Object{ .integer = new_integer_obj };
             };
             obj5 = blk: {
-                const new_boolean_obj = try ta.create(Object.Boolean);
+                const new_boolean_obj = try a.create(Object.Boolean);
                 new_boolean_obj.value = true;
                 break :blk Object.Object{ .boolean = new_boolean_obj };
             };
             obj6 = blk: {
-                const new_boolean_obj = try ta.create(Object.Boolean);
+                const new_boolean_obj = try a.create(Object.Boolean);
                 new_boolean_obj.value = false;
                 break :blk Object.Object{ .boolean = new_boolean_obj };
             };
 
-            var hash = std.HashMap(Object.HashKey, i64, Object.Context, std.hash_map.default_max_load_percentage).init(ta);
+            var hash = std.HashMap(Object.HashKey, i64, Object.Context, std.hash_map.default_max_load_percentage).init(a);
             try hash.put(Object.hashKey(obj1), 1);
             try hash.put(Object.hashKey(obj1), 1);
             try hash.put(Object.hashKey(obj2), 2);
@@ -1355,15 +1329,6 @@ test "TestHashLiterals" {
             try hash.put(Object.hashKey(obj5), 5);
             try hash.put(Object.hashKey(obj6), 6);
             return hash;
-        }
-        fn deinit(hash: *HashType) void {
-            ta.destroy(obj1.string);
-            ta.destroy(obj2.string);
-            ta.destroy(obj3.string);
-            ta.destroy(obj4.integer);
-            ta.destroy(obj5.boolean);
-            ta.destroy(obj6.boolean);
-            hash.deinit();
         }
     };
     const input =
@@ -1378,27 +1343,20 @@ test "TestHashLiterals" {
         \\ }
     ;
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
-
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const env = Environment.init(allocator);
 
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
+    var parser = try Parser.init(allocator, lexer);
     const node_program = parser.parseProgram();
-    defer Globals.nodeProgramAppend(node_program);
 
     checkParserErrors(parser);
 
-    var evaluator = Evaluator.init(std.testing.allocator);
+    var evaluator = Evaluator.init(allocator);
 
     const evaluated = evaluator.eval(node_program, env);
     const result = evaluated.?.hash;
 
-    var expected = try S.createHashMap();
-    defer S.deinit(&expected);
+    var expected = try S.createHashMap(allocator);
 
     try std.testing.expectEqual(expected.count(), result.pairs.count());
 
@@ -1449,22 +1407,21 @@ test "TestHashIndexExpressions" {
         },
     };
 
-    try Globals.init(std.testing.allocator);
-    defer Globals.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
 
-    var env = Environment.init(std.testing.allocator);
-    defer env.deinit();
+    const allocator = arena.allocator();
+
+    const env = Environment.init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
+        var parser = try Parser.init(allocator, lexer);
         const node_program = parser.parseProgram();
-        defer Globals.nodeProgramAppend(node_program);
 
         checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(std.testing.allocator);
+        var evaluator = Evaluator.init(allocator);
 
         const result = evaluator.eval(node_program, env);
 

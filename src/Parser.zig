@@ -1,14 +1,19 @@
 const std = @import("std");
 
+const Ast = @import("Ast.zig");
+const Lexer = @import("Lexer.zig");
 const Token = @import("Token.zig");
 const TokenType = Token.TokenType;
-const Lexer = @import("Lexer.zig");
-const Ast = @import("Ast/Ast.zig");
-
-const Program = @import("Ast.zig").Program;
-const Node = @import("Ast.zig").Node;
 
 const Parser = @This();
+
+allocator: std.mem.Allocator,
+lexer: Lexer,
+cur_token: Token = undefined,
+next_token: Token = undefined,
+errors: std.ArrayList([]const u8),
+prefix_parse_fns: std.AutoHashMap(TokenType, prefixParseFn),
+infix_parse_fns: std.AutoHashMap(TokenType, infixParseFn),
 
 pub const ParserError = error{
     UnknownConstruct,
@@ -31,19 +36,11 @@ const OperatorPrecedence = enum(u8) {
 const prefixParseFn = *const fn (*Parser) *Ast.Expression;
 const infixParseFn = *const fn (*Parser, *Ast.Expression) *Ast.Expression;
 
-allocator: std.mem.Allocator,
-lexer: Lexer,
-cur_token: Token = undefined,
-next_token: Token = undefined,
-errors: std.ArrayList([]const u8),
-prefix_parse_fns: std.AutoHashMap(TokenType, prefixParseFn),
-infix_parse_fns: std.AutoHashMap(TokenType, infixParseFn),
-
 pub fn init(allocator: std.mem.Allocator, lexer: Lexer) !Parser {
     var parser = Parser{
         .allocator = allocator,
         .lexer = lexer,
-        .errors = try .initCapacity(allocator, 0),
+        .errors = .empty,
         .prefix_parse_fns = std.AutoHashMap(TokenType, prefixParseFn).init(allocator),
         .infix_parse_fns = std.AutoHashMap(TokenType, infixParseFn).init(allocator),
     };
@@ -75,15 +72,6 @@ pub fn init(allocator: std.mem.Allocator, lexer: Lexer) !Parser {
     parser.nextToken();
     parser.nextToken();
     return parser;
-}
-
-pub fn deinit(self: *Parser) void {
-    for (self.errors.items) |item| {
-        self.allocator.free(item);
-    }
-    self.errors.deinit(self.allocator);
-    self.prefix_parse_fns.deinit();
-    self.infix_parse_fns.deinit();
 }
 
 pub fn registerPrefix(self: *Parser, token_type: TokenType, func: prefixParseFn) !void {
@@ -131,8 +119,8 @@ fn tokenPrecedence(token_type: TokenType) OperatorPrecedence {
     };
 }
 
-pub fn parseProgram(self: *Parser) *Node {
-    var node = Program.init(self.allocator);
+pub fn parseProgram(self: *Parser) *Ast.Node {
+    const node = Ast.Program.init(self.allocator);
 
     while (!self.curTokenIs(.eof)) {
         const stmt = self.parseStatement();
@@ -477,7 +465,7 @@ fn parseArrayLiteral(self: *Parser) *Ast.Expression {
 }
 
 fn parseExpressionList(self: *Parser, end: TokenType) std.ArrayList(*Ast.Expression) {
-    var list = std.ArrayList(*Ast.Expression).initCapacity(self.allocator, 0) catch @panic("OOM");
+    var list: std.ArrayList(*Ast.Expression) = .empty;
 
     if (self.nextTokenIs(end)) {
         self.nextToken();
@@ -629,11 +617,14 @@ test "TestLetStatement" {
 
     const expected_vals = [_]i64{ 5, 10, 838383 };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -657,11 +648,14 @@ test "TestReturnStatement" {
     ;
     const expected_vals = [_]i64{ 5, 10, 993322 };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -678,11 +672,14 @@ test "TestReturnStatement" {
 test "TestIndentiferExpression" {
     const input = "foobar;";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -700,11 +697,14 @@ test "TestIndentiferExpression" {
 test "TestIntegerLiteralExpression" {
     const input = "5;";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -731,12 +731,15 @@ test "TestPrefixExpression" {
         .{ "-15;", "-", 15 },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -770,12 +773,15 @@ test "TestParsingInfixExpressions" {
         .{ "5 != 5;", 5, "!=", 5 },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -866,12 +872,15 @@ test "TestOperatorPrecedenceParsing" {
         },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -895,12 +904,15 @@ test "TestParsingInfixExpressionsWithBool" {
         .{ "false == false", false, "==", false },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -937,12 +949,15 @@ test "TestParsingPrefixExpressions" {
         .{ "!false;", "!", false },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -966,11 +981,14 @@ test "TestParsingPrefixExpressions" {
 test "TestIfExpression" {
     const input = "if (x < y) { x }";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1011,11 +1029,15 @@ test "TestIfExpression" {
 test "TestIfElseExpression" {
     const input = "if (x < y) { x } else { y }";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1058,11 +1080,14 @@ test "TestIfElseExpression" {
 test "TestFunctionLiteralParsing" {
     const input = "fn(x, y) { x + y; }";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1113,12 +1138,15 @@ test "TestFunctionParameterParsing" {
         .{ "fn(x, y, z) {};", 3 },
     };
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
-        var parser = try Parser.init(std.testing.allocator, lexer);
-        defer parser.deinit();
-        var node = parser.parseProgram();
-        defer node.deinit();
+        var parser = try Parser.init(allocator, lexer);
+        const node = parser.parseProgram();
 
         checkParserErrors(parser);
 
@@ -1135,11 +1163,14 @@ test "TestFunctionParameterParsing" {
 test "TestCallExpressionParsing" {
     const input = "add(1, 2 * 3, 4 + 5);";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1201,11 +1232,14 @@ test "TestCallExpressionParsing" {
 test "TestStringLiteralExpression" {
     const input = "\"hello world\"";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1229,11 +1263,14 @@ test "TestParsingArrayLiterals" {
     };
     const input = "[1, 2 * 2, 3 + 3]";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1260,11 +1297,14 @@ test "TestParsingIndexExpressions" {
     };
     const input = "myArray[1 + 1]";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1282,11 +1322,14 @@ test "TestParsingHashLiteralsStringKeys" {
         \\{"one": 1, "two": 2, "three": 3}
     ;
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1320,11 +1363,14 @@ test "TestParsingHashLiteralsStringKeys" {
 test "TestParsingEmptyHashLiteral" {
     const input = "{}";
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 
@@ -1356,11 +1402,14 @@ test "TestParsingHashLiteralsWithExpressions" {
         \\{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}
     ;
 
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
     const lexer = Lexer.init(input);
-    var parser = try Parser.init(std.testing.allocator, lexer);
-    defer parser.deinit();
-    var node = parser.parseProgram();
-    defer node.deinit();
+    var parser = try Parser.init(allocator, lexer);
+    const node = parser.parseProgram();
 
     checkParserErrors(parser);
 

@@ -1,8 +1,6 @@
 const std = @import("std");
-const Io = std.Io;
 
 const Environment = @import("Environment.zig");
-const Globals = @import("Globals.zig");
 const Object = @import("Object.zig");
 
 const Builtins = @This();
@@ -16,6 +14,7 @@ const bfs = std.StaticStringMap(Object.BuiltinFunction).initComptime(.{
     .{ "puts", builtinFunctionPuts },
 });
 
+// TODO
 var allocator: std.mem.Allocator = undefined;
 
 pub fn init(builtin_allocator: std.mem.Allocator) std.StringHashMap(*Object.Object) {
@@ -27,7 +26,6 @@ pub fn init(builtin_allocator: std.mem.Allocator) std.StringHashMap(*Object.Obje
         new_builtin_obj.function = bfs.get(k).?;
 
         const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-        Globals.objectAppend(new_obj);
         new_obj.* = Object.Object{ .builtin = new_builtin_obj };
 
         result.put(k, new_obj) catch @panic("OOM");
@@ -43,7 +41,6 @@ pub fn createError(comptime format: []const u8, args: anytype) *Object.Object {
     new_error_obj.message = message;
 
     const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-    Globals.objectAppend(new_obj);
     new_obj.* = Object.Object{ .@"error" = new_error_obj };
 
     return new_obj;
@@ -61,7 +58,6 @@ fn builtinFunctionLen(args: std.ArrayList(*Object.Object)) *Object.Object {
             new_integer_obj.value = @intCast(x.elements.items.len);
 
             const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-            Globals.objectAppend(new_obj);
             new_obj.* = Object.Object{ .integer = new_integer_obj };
 
             return new_obj;
@@ -71,7 +67,6 @@ fn builtinFunctionLen(args: std.ArrayList(*Object.Object)) *Object.Object {
             new_integer_obj.value = @intCast(x.value.len);
 
             const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-            Globals.objectAppend(new_obj);
             new_obj.* = Object.Object{ .integer = new_integer_obj };
 
             return new_obj;
@@ -131,7 +126,6 @@ fn builtinFunctionRest(args: std.ArrayList(*Object.Object)) *Object.Object {
         new_array_obj.elements = new_elements;
 
         const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-        Globals.objectAppend(new_obj);
         new_obj.* = Object.Object{ .array = new_array_obj };
 
         return new_obj;
@@ -160,7 +154,6 @@ fn builtinFunctionPush(args: std.ArrayList(*Object.Object)) *Object.Object {
     new_array_obj.elements = new_elements;
 
     const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-    Globals.objectAppend(new_obj);
     new_obj.* = Object.Object{ .array = new_array_obj };
 
     return new_obj;

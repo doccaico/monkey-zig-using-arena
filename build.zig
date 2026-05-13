@@ -4,33 +4,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // internal module definitions
-    // const mod_ast = b.addModule("ast", .{
-    //     .root_source_file = b.path("src/Ast/Ast.zig"),
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-    // const mod_ = b.addModule("chips", .{
-    //     .root_source_file = b.path("src/chips/chips.zig"),
-    //     .target = target,
-    //     .optimize = optimize,
-    //     .imports = &.{
-    //         .{ .name = "common", .module = mod_common },
-    //     },
-    // });
-
     const exe = b.addExecutable(.{
         .name = "monkey-zig",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .optimize = optimize,
             .target = target,
-            // .imports = &.{
-            //     .{
-            //         .name = "c",
-            //         .module = translate_c.createModule(),
-            //     },
-            //     },
         }),
     });
 

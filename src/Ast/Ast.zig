@@ -1,0 +1,19 @@
+pub const Expression = @import("Expression.zig").Expression;
+pub const Identifier = @import("Expression.zig").Identifier;
+pub const IfExpression = @import("Expression.zig").IfExpression;
+pub const HashLiteral = @import("Expression.zig").HashLiteral;
+pub const IndexExpression = @import("Expression.zig").IndexExpression;
+pub const ArrayLiteral = @import("Expression.zig").ArrayLiteral;
+pub const StringLiteral = @import("Expression.zig").StringLiteral;
+pub const CallExpression = @import("Expression.zig").CallExpression;
+pub const FunctionLiteral = @import("Expression.zig").FunctionLiteral;
+pub const BooleanExpression = @import("Expression.zig").BooleanExpression;
+pub const InfixExpression = @import("Expression.zig").InfixExpression;
+pub const PrefixExpression = @import("Expression.zig").PrefixExpression;
+pub const IntegerLiteral = @import("Expression.zig").IntegerLiteral;
+
+pub const Statement = @import("Statement.zig").Statement;
+pub const BlockStatement = @import("Statement.zig").BlockStatement;
+pub const ExpressionStatement = @import("Statement.zig").ExpressionStatement;
+pub const ReturnStatement = @import("Statement.zig").ReturnStatement;
+pub const LetStatement = @import("Statement.zig").LetStatement;

@@ -16,13 +16,13 @@ pub const Node = union(enum) {
 };
 
 pub const Program = struct {
-    allocator: std.mem.Allocator,
+    // allocator: std.mem.Allocator,
     statements: std.ArrayList(*Statement),
 
     pub fn init(allocator: std.mem.Allocator) *Node {
         var prg = allocator.create(Program) catch @panic("OOM");
-        prg.allocator = allocator;
-        prg.statements = std.ArrayList(*Statement).initCapacity(allocator, 0) catch @panic("OOM");
+        // prg.allocator = allocator;
+        prg.statements = .empty;
 
         const node = allocator.create(Node) catch @panic("OOM");
         node.* = Node{ .program = prg };
@@ -460,12 +460,14 @@ test "TestString" {
 
     try statements.append(allocator, stmt);
 
-    const program = Program{ .allocator = allocator, .statements = statements };
+    const node = Program.init(allocator);
 
-    try std.testing.expectEqual(@as(usize, 1), program.statements.items.len);
+    node.program.statements = statements;
+
+    try std.testing.expectEqual(@as(usize, 1), node.program.statements.items.len);
 
     var buffer: [256]u8 = undefined;
     var writer = std.Io.Writer.fixed(&buffer);
-    try program.string(&writer);
+    try node.string(&writer);
     try std.testing.expectEqualStrings("let myVar = anotherVar;", writer.buffered());
 }

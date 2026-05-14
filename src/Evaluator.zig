@@ -586,7 +586,7 @@ test "TestEvalIntegerExpression" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -644,7 +644,7 @@ test "TestEvalBooleanExpression" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -687,7 +687,7 @@ test "TestBangOperator" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -732,7 +732,7 @@ test "TestIfElseExpressions" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -781,7 +781,7 @@ test "TestReturnStatements" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -864,7 +864,7 @@ test "TestErrorHandling" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -905,7 +905,7 @@ test "TestLetStatements" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -936,7 +936,7 @@ test "TestFunctionObject" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -993,7 +993,7 @@ test "TestFunctionApplication" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -1031,7 +1031,7 @@ test "TestClosures" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -1063,7 +1063,7 @@ test "TestStringLiteral" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -1095,7 +1095,7 @@ test "TestStringConcatenation" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -1140,7 +1140,7 @@ test "TestBuiltinFunctions" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -1181,7 +1181,7 @@ test "TestArrayLiterals" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -1268,7 +1268,7 @@ test "TestArrayIndexExpressions" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 
@@ -1368,7 +1368,7 @@ test "TestHashLiterals" {
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
-    const node_program = parser.parseProgram();
+    const node_program = try parser.parseProgram();
 
     Parser.checkParserErrors(parser);
 
@@ -1441,7 +1441,7 @@ test "TestHashIndexExpressions" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(arena_allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 

@@ -54,7 +54,7 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
 
         const lexer = Lexer.init(line);
         var parser = try Parser.init(allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         if (parser.errors.items.len != 0) {
             try printParserErrors(stdout, parser.errors);
@@ -112,7 +112,7 @@ test "TestRepl" {
 
         const lexer = Lexer.init(line);
         var parser = try Parser.init(allocator, lexer);
-        const node_program = parser.parseProgram();
+        const node_program = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 

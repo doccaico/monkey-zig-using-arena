@@ -114,7 +114,7 @@ test "TestEnvironment" {
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
         var parser = try Parser.init(allocator, lexer);
-        const node = parser.parseProgram();
+        const node = try parser.parseProgram();
 
         Parser.checkParserErrors(parser);
 

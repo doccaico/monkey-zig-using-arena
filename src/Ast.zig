@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Allocation = @import("Allocation.zig");
 const ParserError = @import("Parser.zig").ParserError;
 const Token = @import("Token.zig");
 
@@ -18,11 +19,11 @@ pub const Node = union(enum) {
 pub const Program = struct {
     statements: std.ArrayList(*Statement),
 
-    pub fn init(allocator: std.mem.Allocator) *Node {
-        var prg = allocator.create(Program) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator) anyerror!*Node {
+        var prg = try Allocation.createProgram(allocator);
         prg.statements = .empty;
 
-        const node = allocator.create(Node) catch @panic("OOM");
+        const node = try Allocation.createNode(allocator);
         node.* = Node{ .program = prg };
         return node;
     }
@@ -34,8 +35,8 @@ pub const Program = struct {
     pub fn string(self: Program, writer: *std.Io.Writer) anyerror!void {
         for (self.statements.items) |stmt| {
             switch (stmt.*) {
-                inline else => |x| try x.string(writer),
                 .@"error" => {},
+                inline else => |x| try x.string(writer),
             }
         }
     }
@@ -52,15 +53,15 @@ pub const Statement = union(enum(u8)) {
 
     pub fn tokenLiteral(self: Statement) []const u8 {
         return switch (self) {
-            inline else => |x| x.tokenLiteral(),
             .@"error" => "",
+            inline else => |x| x.tokenLiteral(),
         };
     }
 
     pub fn string(self: Statement, writer: *std.Io.Writer) anyerror!void {
         return switch (self) {
-            inline else => |x| x.string(writer),
             .@"error" => {},
+            inline else => |x| x.string(writer),
         };
     }
 };
@@ -70,8 +71,8 @@ pub const LetStatement = struct {
     name: *Identifier,
     value: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) *LetStatement {
-        const ls = allocator.create(LetStatement) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*LetStatement {
+        const ls = try Allocation.createLetStatement(allocator);
         ls.token = token;
         return ls;
     }
@@ -93,8 +94,8 @@ pub const ReturnStatement = struct {
     token: Token,
     return_value: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) *ReturnStatement {
-        const rs = allocator.create(ReturnStatement) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*ReturnStatement {
+        const rs = try Allocation.createReturnStatement(allocator);
         rs.token = token;
         return rs;
     }
@@ -114,8 +115,8 @@ pub const ExpressionStatement = struct {
     token: Token,
     expression: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) *ExpressionStatement {
-        const es = allocator.create(ExpressionStatement) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*ExpressionStatement {
+        const es = try Allocation.createExpressionStatement(allocator);
         es.token = token;
         return es;
     }
@@ -133,8 +134,8 @@ pub const BlockStatement = struct {
     token: Token,
     statements: std.ArrayList(*Statement),
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) *BlockStatement {
-        const bs = allocator.create(BlockStatement) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*BlockStatement {
+        const bs = try Allocation.createBlockStatement(allocator);
         bs.token = token;
         bs.statements = .empty;
         return bs;
@@ -286,8 +287,8 @@ pub const FunctionLiteral = struct {
     parameters: std.ArrayList(*Identifier),
     body: *BlockStatement,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) *FunctionLiteral {
-        const f = allocator.create(FunctionLiteral) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*FunctionLiteral {
+        const f = try Allocation.createFunctionLiteral(allocator);
         f.token = token;
         f.parameters = .empty;
         f.body = undefined;
@@ -319,8 +320,8 @@ pub const CallExpression = struct {
     function: *Expression,
     arguments: std.ArrayList(*Expression),
 
-    pub fn init(allocator: std.mem.Allocator, token: Token, function: *Expression) *CallExpression {
-        const ce = allocator.create(CallExpression) catch @panic("OOM");
+    pub fn init(allocator: std.mem.Allocator, token: Token, function: *Expression) anyerror!*CallExpression {
+        const ce = try Allocation.createCallExpression(allocator);
         ce.token = token;
         ce.function = function;
         ce.arguments = .empty;
@@ -458,7 +459,7 @@ test "TestString" {
 
     try statements.append(allocator, stmt);
 
-    const node = Program.init(allocator);
+    const node = try Program.init(allocator);
 
     node.program.statements = statements;
 

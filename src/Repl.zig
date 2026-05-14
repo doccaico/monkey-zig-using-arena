@@ -24,7 +24,7 @@ const MONKEY_FACE =
 pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.Io.Writer) anyerror!void {
     var line_buf: [1024]u8 = undefined;
 
-    const env = Environment.init(allocator);
+    const env = try Environment.init(allocator);
 
     loop: while (true) {
         try stdout.writeAll(PROMPT);
@@ -63,7 +63,7 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
 
         Evaluator.init(allocator);
 
-        if (Evaluator.eval(node_program, env)) |result| {
+        if (try Evaluator.eval(node_program, env)) |result| {
             try result.inspect(stdout);
             try stdout.writeByte('\n');
         }
@@ -105,7 +105,7 @@ test "TestRepl" {
 
     const allocator = arena.allocator();
 
-    const env = Environment.init(allocator);
+    const env = try Environment.init(allocator);
 
     for (tests) |t| {
         const line = t[0];
@@ -118,7 +118,7 @@ test "TestRepl" {
 
         Evaluator.init(allocator);
 
-        const result = Evaluator.eval(node_program, env);
+        const result = try Evaluator.eval(node_program, env);
 
         {
             const expected = t[1];

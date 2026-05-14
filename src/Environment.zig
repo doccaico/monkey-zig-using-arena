@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Allocation = @import("Allocation.zig");
 const Builtins = @import("Builtins.zig");
 const Object = @import("Object.zig");
 
@@ -13,14 +14,40 @@ allocator: std.mem.Allocator,
 store: std.StringHashMap(*Object.Object),
 outer: ?*Environment,
 
-pub fn init(allocator: std.mem.Allocator) *Environment {
-    TRUE = createObjectBoolean(allocator, true);
-    FALSE = createObjectBoolean(allocator, false);
-    NULL = createObjectNull(allocator);
+pub fn init(allocator: std.mem.Allocator) anyerror!*Environment {
+    // TRUE = createObjectBoolean(allocator, true);
+    // FALSE = createObjectBoolean(allocator, false);
+    // NULL = createObjectNull(allocator);
 
-    Builtins.init(allocator);
+    TRUE = blk: {
+        const new_boolean_obj = try Allocation.createBoolean(allocator);
+        new_boolean_obj.value = true;
 
-    const env = allocator.create(Environment) catch @panic("OOM");
+        const new_obj = try Allocation.createObject(allocator);
+        new_obj.* = Object.Object{ .boolean = new_boolean_obj };
+        break :blk new_obj;
+    };
+
+    FALSE = blk: {
+        const new_boolean_obj = try Allocation.createBoolean(allocator);
+        new_boolean_obj.value = false;
+
+        const new_obj = try Allocation.createObject(allocator);
+        new_obj.* = Object.Object{ .boolean = new_boolean_obj };
+        break :blk new_obj;
+    };
+
+    NULL = blk: {
+        const new_null_obj = try Allocation.createNull(allocator);
+
+        const new_obj = try Allocation.createObject(allocator);
+        new_obj.* = Object.Object{ .null = new_null_obj };
+        break :blk new_obj;
+    };
+
+    try Builtins.init(allocator);
+
+    const env = try Allocation.createEnvironment(allocator);
     env.* = Environment{
         .allocator = allocator,
         .store = std.StringHashMap(*Object.Object).init(allocator),
@@ -29,8 +56,8 @@ pub fn init(allocator: std.mem.Allocator) *Environment {
     return env;
 }
 
-pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) *Environment {
-    const env = self.allocator.create(Environment) catch @panic("OOM");
+pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) anyerror!*Environment {
+    const env = try Allocation.createEnvironment(self.allocator);
     env.allocator = self.allocator;
     env.store = std.StringHashMap(*Object.Object).init(self.allocator);
     env.outer = outer;
@@ -49,33 +76,16 @@ pub fn get(self: Environment, key: []const u8) ?*Object.Object {
     return null;
 }
 
-pub fn set(self: *Environment, key: []const u8, value: *Object.Object) void {
-    const gop = self.store.getOrPut(key) catch @panic("OOM");
+pub fn set(self: *Environment, key: []const u8, value: *Object.Object) anyerror!void {
+    const gop = try self.store.getOrPut(key);
     if (!gop.found_existing) {
-        gop.key_ptr.* = self.allocator.dupe(u8, key) catch @panic("OOM");
+        gop.key_ptr.* = try self.allocator.dupe(u8, key);
     }
     gop.value_ptr.* = value;
 }
 
-pub fn getBuiltinFunction(key: []const u8) ?*Object.Object {
+pub fn getBuiltinFunction(key: []const u8) anyerror!?*Object.Object {
     return Builtins.bfs_obj_map.get(key);
-}
-
-fn createObjectBoolean(allocator: std.mem.Allocator, value: bool) *Object.Object {
-    const new_boolean_obj = allocator.create(Object.Boolean) catch @panic("OOM");
-    new_boolean_obj.value = value;
-
-    const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-    new_obj.* = Object.Object{ .boolean = new_boolean_obj };
-    return new_obj;
-}
-
-fn createObjectNull(allocator: std.mem.Allocator) *Object.Object {
-    const new_null_obj = allocator.create(Object.Null) catch @panic("OOM");
-
-    const new_obj = allocator.create(Object.Object) catch @panic("OOM");
-    new_obj.* = Object.Object{ .null = new_null_obj };
-    return new_obj;
 }
 
 test "TestEnvironment" {
@@ -99,7 +109,7 @@ test "TestEnvironment" {
 
     const allocator = arena.allocator();
 
-    const env = init(allocator);
+    const env = try init(allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -110,7 +120,7 @@ test "TestEnvironment" {
 
         Evaluator.init(allocator);
 
-        const result = Evaluator.eval(node, env);
+        const result = try Evaluator.eval(node, env);
 
         {
             const expected = t[1];

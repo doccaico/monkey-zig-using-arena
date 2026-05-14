@@ -1,11 +1,10 @@
 const std = @import("std");
 
 const Ast = @import("Ast.zig");
-const Builtins = @import("Builtins.zig");
 const Environment = @import("Environment.zig");
 
 const ObjectType = []const u8;
-pub const BuiltinFunction = *const fn (args: std.ArrayList(*Object)) *Object;
+pub const BuiltinFunction = *const fn (args: std.ArrayList(*Object)) anyerror!*Object;
 
 pub const INTEGER_OBJ: ObjectType = "INTEGER";
 pub const BOOLEAN_OBJ: ObjectType = "BOOLEAN";

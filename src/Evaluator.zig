@@ -3,9 +3,7 @@ const std = @import("std");
 const Allocation = @import("Allocation.zig");
 const Ast = @import("Ast.zig");
 const Environment = @import("Environment.zig");
-const Lexer = @import("Lexer.zig");
 const Object = @import("Object.zig");
-const Parser = @import("Parser.zig");
 
 pub var allocator: std.mem.Allocator = undefined;
 
@@ -13,7 +11,7 @@ pub fn init(evaluator_allocator: std.mem.Allocator) void {
     allocator = evaluator_allocator;
 }
 
-pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
+pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
     switch (node.*) {
         .program => {
             return evalProgram(node, env);
@@ -21,37 +19,37 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
         .statement => |x| {
             switch (x.*) {
                 .return_statement => |y| {
-                    const new_node = Allocation.createNode(allocator);
+                    const new_node = try Allocation.createNode(allocator);
                     new_node.* = .{ .expression = y.return_value };
 
-                    const result = eval(new_node, env);
+                    const result = try eval(new_node, env);
                     if (isError(result)) {
                         return result;
                     }
 
-                    const new_return_value_obj = Allocation.createReturnValue(allocator);
+                    const new_return_value_obj = try Allocation.createReturnValue(allocator);
                     new_return_value_obj.value = result.?;
 
-                    const new_obj = Allocation.createObject(allocator);
+                    const new_obj = try Allocation.createObject(allocator);
                     new_obj.* = .{ .return_value = new_return_value_obj };
 
                     return new_obj;
                 },
                 .expression_statement => |y| {
-                    const new_node = Allocation.createNode(allocator);
+                    const new_node = try Allocation.createNode(allocator);
                     new_node.* = .{ .expression = y.expression };
 
                     return eval(new_node, env);
                 },
                 .let_statement => |y| {
-                    const new_node = Allocation.createNode(allocator);
+                    const new_node = try Allocation.createNode(allocator);
                     new_node.* = .{ .expression = y.value };
 
-                    const result = eval(new_node, env);
+                    const result = try eval(new_node, env);
                     if (isError(result)) {
                         return result;
                     }
-                    env.set(y.name.value, result.?);
+                    try env.set(y.name.value, result.?);
                 },
                 else => unreachable,
             }
@@ -59,43 +57,43 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
         .expression => |x| {
             switch (x.*) {
                 .integer_literal => |y| {
-                    const new_integer_obj = Allocation.createInteger(allocator);
+                    const new_integer_obj = try Allocation.createInteger(allocator);
                     new_integer_obj.value = y.value;
 
-                    const new_obj = Allocation.createObject(allocator);
+                    const new_obj = try Allocation.createObject(allocator);
                     new_obj.* = .{ .integer = new_integer_obj };
 
                     return new_obj;
                 },
                 .prefix_expression => |y| {
-                    const new_right_node = Allocation.createNode(allocator);
+                    const new_right_node = try Allocation.createNode(allocator);
                     new_right_node.* = .{ .expression = y.right };
 
-                    const right = eval(new_right_node, env);
+                    const right = try eval(new_right_node, env);
                     if (isError(right)) {
                         return right;
                     }
-                    return evalPrefixExpression(y.operator, right.?);
+                    return try evalPrefixExpression(y.operator, right.?);
                 },
                 .infix_expression => |y| {
                     // left
-                    const new_left_node = Allocation.createNode(allocator);
+                    const new_left_node = try Allocation.createNode(allocator);
                     new_left_node.* = .{ .expression = y.left };
 
-                    const left = eval(new_left_node, env);
+                    const left = try eval(new_left_node, env);
                     if (isError(left)) {
                         return left;
                     }
                     // rigth
-                    const new_right_node = Allocation.createNode(allocator);
+                    const new_right_node = try Allocation.createNode(allocator);
                     new_right_node.* = .{ .expression = y.right };
 
-                    const right = eval(new_right_node, env);
+                    const right = try eval(new_right_node, env);
                     if (isError(right)) {
                         return right;
                     }
 
-                    return evalInfixExpression(y.operator, left.?, right.?);
+                    return try evalInfixExpression(y.operator, left.?, right.?);
                 },
                 .boolean => |y| {
                     return nativeBoolToBooleanObject(y.value);
@@ -107,26 +105,26 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     return evalIdentifier(y, env);
                 },
                 .function_literal => |y| {
-                    const new_function_obj = Allocation.createFunction(allocator);
+                    const new_function_obj = try Allocation.createFunction(allocator);
                     new_function_obj.parameters = y.parameters;
                     new_function_obj.body = y.body;
                     new_function_obj.env = env;
 
-                    const new_obj = Allocation.createObject(allocator);
+                    const new_obj = try Allocation.createObject(allocator);
                     new_obj.* = .{ .function = new_function_obj };
                     return new_obj;
                 },
                 .call_expression => |y| {
-                    const new_node = Allocation.createNode(allocator);
+                    const new_node = try Allocation.createNode(allocator);
                     new_node.* = .{ .expression = y.function };
 
-                    const result = eval(new_node, env);
+                    const result = try eval(new_node, env);
 
                     if (isError(result)) {
                         return result.?;
                     }
 
-                    const args = evalExpressions(y.arguments, env);
+                    const args = try evalExpressions(y.arguments, env);
 
                     if (args.items.len == 1 and isError(args.items[0])) {
                         return args.items[0];
@@ -134,42 +132,42 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     return applyFunction(env, result.?, args);
                 },
                 .string_literal => |y| {
-                    const new_string_obj = Allocation.createString(allocator);
+                    const new_string_obj = try Allocation.createString(allocator);
                     new_string_obj.value = y.value;
 
-                    const new_obj = Allocation.createObject(allocator);
+                    const new_obj = try Allocation.createObject(allocator);
                     new_obj.* = .{ .string = new_string_obj };
 
                     return new_obj;
                 },
                 .array_literal => |y| {
-                    const elements = evalExpressions(y.elements, env);
+                    const elements = try evalExpressions(y.elements, env);
                     if (elements.items.len == 1 and isError(elements.items[0])) {
                         return elements.items[0];
                     }
 
-                    const new_array_obj = Allocation.createArray(allocator);
+                    const new_array_obj = try Allocation.createArray(allocator);
                     new_array_obj.elements = elements;
 
-                    const new_obj = Allocation.createObject(allocator);
+                    const new_obj = try Allocation.createObject(allocator);
                     new_obj.* = .{ .array = new_array_obj };
 
                     return new_obj;
                 },
                 .index_expression => |y| {
                     // left
-                    const new_left_node = Allocation.createNode(allocator);
+                    const new_left_node = try Allocation.createNode(allocator);
                     new_left_node.* = .{ .expression = y.left };
 
-                    const left = eval(new_left_node, env);
+                    const left = try eval(new_left_node, env);
                     if (isError(left)) {
                         return left;
                     }
                     // index
-                    const new_index_node = Allocation.createNode(allocator);
+                    const new_index_node = try Allocation.createNode(allocator);
                     new_index_node.* = .{ .expression = y.index };
 
-                    const index = eval(new_index_node, env);
+                    const index = try eval(new_index_node, env);
                     if (isError(index)) {
                         return index;
                     }
@@ -186,14 +184,14 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
     return null;
 }
 
-fn evalProgram(node: *Ast.Node, env: *Environment) ?*Object.Object {
+fn evalProgram(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
     var result: ?*Object.Object = null;
 
     for (node.program.statements.items) |stmt| {
-        const new_node = Allocation.createNode(allocator);
+        const new_node = try Allocation.createNode(allocator);
         new_node.* = .{ .statement = stmt };
 
-        result = eval(new_node, env);
+        result = try eval(new_node, env);
 
         if (result == null) continue;
 
@@ -206,13 +204,13 @@ fn evalProgram(node: *Ast.Node, env: *Environment) ?*Object.Object {
     return result;
 }
 
-fn evalBlockStatement(bs: *Ast.BlockStatement, env: *Environment) *Object.Object {
+fn evalBlockStatement(bs: *Ast.BlockStatement, env: *Environment) anyerror!*Object.Object {
     var result: ?*Object.Object = undefined;
     for (bs.statements.items) |stmt| {
-        const new_node = Allocation.createNode(allocator);
+        const new_node = try Allocation.createNode(allocator);
         new_node.* = .{ .statement = stmt };
 
-        result = eval(new_node, env);
+        result = try eval(new_node, env);
 
         if (result) |r| {
             const rt = r.getType();
@@ -226,21 +224,21 @@ fn evalBlockStatement(bs: *Ast.BlockStatement, env: *Environment) *Object.Object
 }
 
 fn evalIntegerLiteral(il: *Ast.IntegerLiteral) *Object.Object {
-    const new_integer_obj = Allocation.createInteger(allocator);
+    const new_integer_obj = try Allocation.createInteger(allocator);
     new_integer_obj.value = il.value;
 
-    const new_obj = Allocation.createObject(allocator);
+    const new_obj = try Allocation.createObject(allocator);
     new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
 
-fn evalPrefixExpression(operator: []const u8, right: *Object.Object) *Object.Object {
+fn evalPrefixExpression(operator: []const u8, right: *Object.Object) anyerror!*Object.Object {
     if (std.mem.eql(u8, operator, "!")) {
         return evalPrefixBangExpression(right);
     } else if (std.mem.eql(u8, operator, "-")) {
         return evalPrefixMinusExpression(right);
     } else {
-        return Allocation.createError(allocator, "unknown operator: {s}{s}", .{ operator, right.getType() });
+        return try Allocation.createError(allocator, "unknown operator: {s}{s}", .{ operator, right.getType() });
     }
 }
 
@@ -251,26 +249,26 @@ fn evalPrefixBangExpression(right: *Object.Object) *Object.Object {
     return Environment.FALSE;
 }
 
-fn evalPrefixMinusExpression(right: *Object.Object) *Object.Object {
+fn evalPrefixMinusExpression(right: *Object.Object) anyerror!*Object.Object {
     if (!std.mem.eql(u8, right.getType(), Object.INTEGER_OBJ)) {
-        return Allocation.createError(allocator, "unknown operator: -{s}", .{right.getType()});
+        return try Allocation.createError(allocator, "unknown operator: -{s}", .{right.getType()});
     }
 
     const value = right.integer.value;
 
-    const new_integer_obj = Allocation.createInteger(allocator);
+    const new_integer_obj = try Allocation.createInteger(allocator);
     new_integer_obj.value = -value;
 
-    const new_obj = Allocation.createObject(allocator);
+    const new_obj = try Allocation.createObject(allocator);
     new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
 
-fn evalInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) *Object.Object {
+fn evalInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) anyerror!*Object.Object {
     if (std.mem.eql(u8, left.getType(), Object.INTEGER_OBJ) and
         std.mem.eql(u8, right.getType(), Object.INTEGER_OBJ))
     {
-        return evalIntegerInfixExpression(op, left, right);
+        return try evalIntegerInfixExpression(op, left, right);
     } else if (std.mem.eql(u8, left.getType(), Object.STRING_OBJ) and
         std.mem.eql(u8, right.getType(), Object.STRING_OBJ))
     {
@@ -280,46 +278,46 @@ fn evalInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Obje
     } else if (std.mem.eql(u8, op, "!=")) {
         return nativeBoolToBooleanObject(left.boolean.value != right.boolean.value);
     } else if (!std.mem.eql(u8, left.getType(), right.getType())) {
-        return Allocation.createError(allocator, "type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try Allocation.createError(allocator, "type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     } else {
-        return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 }
 
-fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) *Object.Object {
+fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) anyerror!*Object.Object {
     switch (op[0]) {
         '+' => {
-            const new_integer_obj = Allocation.createInteger(allocator);
+            const new_integer_obj = try Allocation.createInteger(allocator);
             new_integer_obj.value = left.integer.value + right.integer.value;
 
-            const new_obj = Allocation.createObject(allocator);
+            const new_obj = try Allocation.createObject(allocator);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '-' => {
-            const new_integer_obj = Allocation.createInteger(allocator);
+            const new_integer_obj = try Allocation.createInteger(allocator);
             new_integer_obj.value = left.integer.value - right.integer.value;
 
-            const new_obj = Allocation.createObject(allocator);
+            const new_obj = try Allocation.createObject(allocator);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '*' => {
-            const new_integer_obj = Allocation.createInteger(allocator);
+            const new_integer_obj = try Allocation.createInteger(allocator);
             new_integer_obj.value = left.integer.value * right.integer.value;
 
-            const new_obj = Allocation.createObject(allocator);
+            const new_obj = try Allocation.createObject(allocator);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '/' => {
-            const new_integer_obj = Allocation.createInteger(allocator);
+            const new_integer_obj = try Allocation.createInteger(allocator);
             new_integer_obj.value = @divTrunc(left.integer.value, right.integer.value);
 
-            const new_obj = Allocation.createObject(allocator);
+            const new_obj = try Allocation.createObject(allocator);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
@@ -337,33 +335,33 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             if (std.mem.eql(u8, op, "!=")) {
                 return nativeBoolToBooleanObject(left.integer.value != right.integer.value);
             }
-            return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+            return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
         },
     }
 }
 
-fn evalStringInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) *Object.Object {
+fn evalStringInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) anyerror!*Object.Object {
     if (!std.mem.eql(u8, op, "+")) {
-        return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 
     const slice = &[_][]const u8{ left.string.value, right.string.value };
-    const s = std.mem.concat(allocator, u8, slice) catch @panic("OOM");
+    const s = try std.mem.concat(allocator, u8, slice);
 
-    const new_string_obj = Allocation.createString(allocator);
+    const new_string_obj = try Allocation.createString(allocator);
     new_string_obj.value = s;
 
-    const new_obj = Allocation.createObject(allocator);
+    const new_obj = try Allocation.createObject(allocator);
     new_obj.* = .{ .string = new_string_obj };
 
     return new_obj;
 }
 
-fn evalIfExpression(ie: *Ast.IfExpression, env: *Environment) *Object.Object {
-    const new_node = Allocation.createNode(allocator);
+fn evalIfExpression(ie: *Ast.IfExpression, env: *Environment) anyerror!*Object.Object {
+    const new_node = try Allocation.createNode(allocator);
     new_node.* = .{ .expression = ie.condition };
 
-    const condition = eval(new_node, env);
+    const condition = try eval(new_node, env);
     if (isError(condition)) {
         return condition.?;
     }
@@ -376,52 +374,53 @@ fn evalIfExpression(ie: *Ast.IfExpression, env: *Environment) *Object.Object {
     }
 }
 
-fn evalIdentifier(ident: *Ast.Identifier, env: *Environment) *Object.Object {
+fn evalIdentifier(ident: *Ast.Identifier, env: *Environment) anyerror!*Object.Object {
     const value = env.get(ident.value);
     if (value != null) {
         return value.?;
     }
-    const builtin = Environment.getBuiltinFunction(ident.value);
+    const builtin = try Environment.getBuiltinFunction(ident.value);
     if (builtin != null) {
         return builtin.?;
     }
-    return Allocation.createError(allocator, "identifier not found: {s}", .{ident.value});
+    return try Allocation.createError(allocator, "identifier not found: {s}", .{ident.value});
 }
 
-fn evalExpressions(exps: std.ArrayList(*Ast.Expression), env: *Environment) std.ArrayList(*Object.Object) {
+fn evalExpressions(exps: std.ArrayList(*Ast.Expression), env: *Environment) anyerror!std.ArrayList(*Object.Object) {
     var result: std.ArrayList(*Object.Object) = .empty;
     for (exps.items) |e| {
-        const new_node = Allocation.createNode(allocator);
+        const new_node = try Allocation.createNode(allocator);
         new_node.* = .{ .expression = e };
 
-        const evaluated = eval(new_node, env).?;
-        if (isError(evaluated)) {
-            result.append(allocator, evaluated) catch @panic("OOM");
-            return result;
+        if (try eval(new_node, env)) |evaluated| {
+            if (isError(evaluated)) {
+                try result.append(allocator, evaluated);
+                return result;
+            }
+            try result.append(allocator, evaluated);
         }
-        result.append(allocator, evaluated) catch @panic("OOM");
     }
     return result;
 }
 
-fn applyFunction(env: *Environment, func: *Object.Object, args: std.ArrayList(*Object.Object)) *Object.Object {
+fn applyFunction(env: *Environment, func: *Object.Object, args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     switch (func.*) {
         .function => |x| {
-            const extended_env = extendFunctionEnv(env, x, args);
-            const evaluated = evalBlockStatement(x.body, extended_env);
+            const extended_env = try extendFunctionEnv(env, x, args);
+            const evaluated = try evalBlockStatement(x.body, extended_env);
             return unwrapReturnValue(evaluated);
         },
         .builtin => |x| {
             return x.function(args);
         },
-        else => return Allocation.createError(allocator, "not a function: {s}", .{func.getType()}),
+        else => return try Allocation.createError(allocator, "not a function: {s}", .{func.getType()}),
     }
 }
 
-fn extendFunctionEnv(env: *Environment, func: *Object.Function, args: std.ArrayList(*Object.Object)) *Environment {
-    const new_env = env.newEnclosedEnvironment(func.env);
+fn extendFunctionEnv(env: *Environment, func: *Object.Function, args: std.ArrayList(*Object.Object)) anyerror!*Environment {
+    const new_env = try env.newEnclosedEnvironment(func.env);
     for (func.parameters.items, 0..) |param, param_idx| {
-        new_env.set(param.value, args.items[param_idx]);
+        try new_env.set(param.value, args.items[param_idx]);
     }
     return new_env;
 }
@@ -433,7 +432,7 @@ fn unwrapReturnValue(obj: *Object.Object) *Object.Object {
     };
 }
 
-fn evalIndexExpression(left: *Object.Object, index: *Object.Object) *Object.Object {
+fn evalIndexExpression(left: *Object.Object, index: *Object.Object) anyerror!*Object.Object {
     if (std.mem.eql(u8, left.getType(), Object.ARRAY_OBJ) and
         std.mem.eql(u8, index.getType(), Object.INTEGER_OBJ))
     {
@@ -441,7 +440,7 @@ fn evalIndexExpression(left: *Object.Object, index: *Object.Object) *Object.Obje
     } else if (std.mem.eql(u8, left.getType(), Object.HASH_OBJ)) {
         return evalHashIndexExpression(left, index);
     } else {
-        return Allocation.createError(allocator, "index operator not supported: {s}", .{left.getType()});
+        return try Allocation.createError(allocator, "index operator not supported: {s}", .{left.getType()});
     }
 }
 
@@ -457,7 +456,7 @@ fn evalArrayIndexExpression(array: *Object.Object, index: *Object.Object) *Objec
     return array_obj.elements.items[@intCast(idx)];
 }
 
-fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
+fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) anyerror!*Object.Object {
     var pairs = std.HashMap(Object.HashKey, Object.HashPair, Object.Context, std.hash_map.default_max_load_percentage).init(allocator);
 
     var iterator = node.pairs.iterator();
@@ -465,9 +464,9 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
         const key_node = entry.key_ptr.*;
         const value_node = entry.value_ptr.*;
 
-        const new_key_node = Allocation.createNode(allocator);
+        const new_key_node = try Allocation.createNode(allocator);
         new_key_node.* = .{ .expression = key_node };
-        var key = eval(new_key_node, env);
+        var key = try eval(new_key_node, env);
 
         if (isError(key)) {
             return key.?;
@@ -478,33 +477,33 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
             .boolean => |x| hk = Object.Object{ .boolean = x },
             .integer => |x| hk = Object.Object{ .integer = x },
             .string => |x| hk = Object.Object{ .string = x },
-            else => return Allocation.createError(allocator, "unusable as hash key: {s}", .{key.?.getType()}),
+            else => return try Allocation.createError(allocator, "unusable as hash key: {s}", .{key.?.getType()}),
         }
 
-        const new_value_node = Allocation.createNode(allocator);
+        const new_value_node = try Allocation.createNode(allocator);
         new_value_node.* = .{ .expression = value_node };
-        const value = eval(new_value_node, env);
+        const value = try eval(new_value_node, env);
 
         if (isError(value)) {
             return value.?;
         }
 
         const hashed = Object.hashKey(hk);
-        pairs.put(hashed, .{
+        try pairs.put(hashed, .{
             .key = key.?,
             .value = value.?,
-        }) catch @panic("OOM");
+        });
     }
 
-    const new_hash_obj = Allocation.createHash(allocator);
+    const new_hash_obj = try Allocation.createHash(allocator);
     new_hash_obj.pairs = pairs;
 
-    const new_obj = Allocation.createObject(allocator);
+    const new_obj = try Allocation.createObject(allocator);
     new_obj.* = .{ .hash = new_hash_obj };
     return new_obj;
 }
 
-fn evalHashIndexExpression(hash: *Object.Object, index: *Object.Object) *Object.Object {
+fn evalHashIndexExpression(hash: *Object.Object, index: *Object.Object) anyerror!*Object.Object {
     const hash_obj = hash.hash;
 
     var key: Object.Object = undefined;
@@ -512,7 +511,7 @@ fn evalHashIndexExpression(hash: *Object.Object, index: *Object.Object) *Object.
         .boolean => |x| key = Object.Object{ .boolean = x },
         .integer => |x| key = Object.Object{ .integer = x },
         .string => |x| key = Object.Object{ .string = x },
-        else => return Allocation.createError(allocator, "unusable as hash key: {s}", .{index.getType()}),
+        else => return try Allocation.createError(allocator, "unusable as hash key: {s}", .{index.getType()}),
     }
     const pair = hash_obj.pairs.get(Object.hashKey(key)) orelse return Environment.NULL;
     return pair.value;
@@ -550,6 +549,9 @@ fn isError(obj: ?*Object.Object) bool {
 // tests
 
 test "TestEvalIntegerExpression" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         i64,
@@ -579,7 +581,7 @@ test "TestEvalIntegerExpression" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -590,7 +592,7 @@ test "TestEvalIntegerExpression" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -601,6 +603,9 @@ test "TestEvalIntegerExpression" {
 }
 
 test "TestEvalBooleanExpression" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         bool,
@@ -634,7 +639,7 @@ test "TestEvalBooleanExpression" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -645,7 +650,7 @@ test "TestEvalBooleanExpression" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -656,6 +661,9 @@ test "TestEvalBooleanExpression" {
 }
 
 test "TestBangOperator" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         bool,
@@ -674,7 +682,7 @@ test "TestBangOperator" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -685,7 +693,7 @@ test "TestBangOperator" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -696,6 +704,9 @@ test "TestBangOperator" {
 }
 
 test "TestIfElseExpressions" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const null_value = -256;
     const Test = struct {
         []const u8,
@@ -716,7 +727,7 @@ test "TestIfElseExpressions" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -727,7 +738,7 @@ test "TestIfElseExpressions" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -746,6 +757,9 @@ test "TestIfElseExpressions" {
 }
 
 test "TestReturnStatements" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         i64,
@@ -762,7 +776,7 @@ test "TestReturnStatements" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -773,7 +787,7 @@ test "TestReturnStatements" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -784,6 +798,9 @@ test "TestReturnStatements" {
 }
 
 test "TestErrorHandling" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         []const u8,
@@ -842,7 +859,7 @@ test "TestErrorHandling" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -853,7 +870,7 @@ test "TestErrorHandling" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -864,6 +881,9 @@ test "TestErrorHandling" {
 }
 
 test "TestLetStatements" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         i64,
@@ -880,7 +900,7 @@ test "TestLetStatements" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -891,7 +911,7 @@ test "TestLetStatements" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -902,6 +922,9 @@ test "TestLetStatements" {
 }
 
 test "TestFunctionObject" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const input = "fn(x) { x + 2; };";
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -909,7 +932,7 @@ test "TestFunctionObject" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -919,7 +942,7 @@ test "TestFunctionObject" {
 
     init(arena_allocator);
 
-    const result = eval(node_program, env);
+    const result = try eval(node_program, env);
 
     {
         const expected = 1;
@@ -944,6 +967,9 @@ test "TestFunctionObject" {
 }
 
 test "TestFunctionApplication" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Test = struct {
         []const u8,
         i64,
@@ -962,7 +988,7 @@ test "TestFunctionApplication" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -973,7 +999,7 @@ test "TestFunctionApplication" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -984,6 +1010,9 @@ test "TestFunctionApplication" {
 }
 
 test "TestClosures" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const input =
         \\let newAdder = fn(x) {
         \\  fn(y) { x + y };
@@ -998,7 +1027,7 @@ test "TestClosures" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -1008,7 +1037,7 @@ test "TestClosures" {
 
     init(arena_allocator);
 
-    const result = eval(node_program, env);
+    const result = try eval(node_program, env);
 
     {
         const expected: i64 = 4;
@@ -1018,6 +1047,9 @@ test "TestClosures" {
 }
 
 test "TestStringLiteral" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const input =
         \\"Hello World!"
     ;
@@ -1027,7 +1059,7 @@ test "TestStringLiteral" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -1037,7 +1069,7 @@ test "TestStringLiteral" {
 
     init(arena_allocator);
 
-    const result = eval(node_program, env);
+    const result = try eval(node_program, env);
 
     {
         const expected = "Hello World!";
@@ -1047,6 +1079,9 @@ test "TestStringLiteral" {
 }
 
 test "TestStringConcatenation" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const input =
         \\"Hello" + " " + "World!";
     ;
@@ -1056,7 +1091,7 @@ test "TestStringConcatenation" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -1066,7 +1101,7 @@ test "TestStringConcatenation" {
 
     init(arena_allocator);
 
-    const result = eval(node_program, env);
+    const result = try eval(node_program, env);
 
     {
         const expected = "Hello World!";
@@ -1076,6 +1111,9 @@ test "TestStringConcatenation" {
 }
 
 test "TestBuiltinFunctions" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const Types1 = union(enum) {
         string: []const u8,
         integer: i64,
@@ -1097,7 +1135,7 @@ test "TestBuiltinFunctions" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -1108,7 +1146,7 @@ test "TestBuiltinFunctions" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             switch (result.?.*) {
@@ -1129,6 +1167,9 @@ test "TestBuiltinFunctions" {
 }
 
 test "TestArrayLiterals" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const input = "[1, 2 * 2, 3 + 3]";
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -1136,7 +1177,7 @@ test "TestArrayLiterals" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -1146,7 +1187,7 @@ test "TestArrayLiterals" {
 
     init(arena_allocator);
 
-    const result = eval(node_program, env);
+    const result = try eval(node_program, env);
 
     {
         const expected: i64 = 1;
@@ -1166,6 +1207,9 @@ test "TestArrayLiterals" {
 }
 
 test "TestArrayIndexExpressions" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const null_value = -256;
     const Test = struct {
         []const u8,
@@ -1219,7 +1263,7 @@ test "TestArrayIndexExpressions" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -1230,7 +1274,7 @@ test "TestArrayIndexExpressions" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];
@@ -1249,6 +1293,9 @@ test "TestArrayIndexExpressions" {
 }
 
 test "TestHashLiterals" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -1317,7 +1364,7 @@ test "TestHashLiterals" {
         \\ }
     ;
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     const lexer = Lexer.init(input);
     var parser = try Parser.init(arena_allocator, lexer);
@@ -1327,7 +1374,7 @@ test "TestHashLiterals" {
 
     init(arena_allocator);
 
-    const evaluated = eval(node_program, env);
+    const evaluated = try eval(node_program, env);
     const result = evaluated.?.hash;
 
     var expected = try S.createHashMap(arena_allocator);
@@ -1345,6 +1392,9 @@ test "TestHashLiterals" {
 }
 
 test "TestHashIndexExpressions" {
+    const Lexer = @import("Lexer.zig");
+    const Parser = @import("Parser.zig");
+
     const null_value = -256;
     const Test = struct {
         []const u8,
@@ -1386,7 +1436,7 @@ test "TestHashIndexExpressions" {
 
     const arena_allocator = arena.allocator();
 
-    const env = Environment.init(arena_allocator);
+    const env = try Environment.init(arena_allocator);
 
     for (tests) |t| {
         const lexer = Lexer.init(t[0]);
@@ -1397,7 +1447,7 @@ test "TestHashIndexExpressions" {
 
         init(arena_allocator);
 
-        const result = eval(node_program, env);
+        const result = try eval(node_program, env);
 
         {
             const expected = t[1];

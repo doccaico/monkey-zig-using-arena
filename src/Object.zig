@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const Ast = @import("Ast.zig");
+const Builtins = @import("Builtins.zig");
 const Environment = @import("Environment.zig");
 
 const ObjectType = []const u8;

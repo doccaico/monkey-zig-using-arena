@@ -5,21 +5,20 @@ const Object = @import("Object.zig");
 
 const Environment = @This();
 
-allocator: std.mem.Allocator,
-store: std.StringHashMap(*Object.Object),
-outer: ?*Environment,
-
 pub var TRUE: *Object.Object = undefined;
 pub var FALSE: *Object.Object = undefined;
 pub var NULL: *Object.Object = undefined;
-pub var builtins: std.StringHashMap(*Object.Object) = undefined;
+
+allocator: std.mem.Allocator,
+store: std.StringHashMap(*Object.Object),
+outer: ?*Environment,
 
 pub fn init(allocator: std.mem.Allocator) *Environment {
     TRUE = createObjectBoolean(allocator, true);
     FALSE = createObjectBoolean(allocator, false);
     NULL = createObjectNull(allocator);
 
-    builtins = Builtins.init(allocator);
+    Builtins.init(allocator);
 
     const env = allocator.create(Environment) catch @panic("OOM");
     env.* = Environment{
@@ -35,7 +34,6 @@ pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) *Environ
     env.allocator = self.allocator;
     env.store = std.StringHashMap(*Object.Object).init(self.allocator);
     env.outer = outer;
-
     return env;
 }
 
@@ -60,7 +58,7 @@ pub fn set(self: *Environment, key: []const u8, value: *Object.Object) void {
 }
 
 pub fn getBuiltinFunction(key: []const u8) ?*Object.Object {
-    return builtins.get(key);
+    return Builtins.bfs_obj_map.get(key);
 }
 
 fn createObjectBoolean(allocator: std.mem.Allocator, value: bool) *Object.Object {
@@ -85,8 +83,6 @@ test "TestEnvironment" {
     const Lexer = @import("Lexer.zig");
     const Parser = @import("Parser.zig");
 
-    const checkParserErrors = Parser.checkParserErrors;
-
     const Test = struct {
         []const u8,
         i64,
@@ -110,7 +106,7 @@ test "TestEnvironment" {
         var parser = try Parser.init(allocator, lexer);
         const node = parser.parseProgram();
 
-        checkParserErrors(parser);
+        Parser.checkParserErrors(parser);
 
         var evaluator = Evaluator.init(allocator);
 

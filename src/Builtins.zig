@@ -5,7 +5,9 @@ const Object = @import("Object.zig");
 
 const Builtins = @This();
 
-const bfs = std.StaticStringMap(Object.BuiltinFunction).initComptime(.{
+var allocator: std.mem.Allocator = undefined;
+pub var bfs_obj_map: std.StringHashMap(*Object.Object) = undefined;
+pub const bfs = std.StaticStringMap(Object.BuiltinFunction).initComptime(.{
     .{ "len", builtinFunctionLen },
     .{ "first", builtinFunctionFirst },
     .{ "last", builtinFunctionLast },
@@ -14,13 +16,10 @@ const bfs = std.StaticStringMap(Object.BuiltinFunction).initComptime(.{
     .{ "puts", builtinFunctionPuts },
 });
 
-// TODO
-var allocator: std.mem.Allocator = undefined;
+pub fn init(builtins_allocator: std.mem.Allocator) void {
+    allocator = builtins_allocator;
+    bfs_obj_map = std.StringHashMap(*Object.Object).init(allocator);
 
-pub fn init(builtin_allocator: std.mem.Allocator) std.StringHashMap(*Object.Object) {
-    allocator = builtin_allocator;
-
-    var result = std.StringHashMap(*Object.Object).init(allocator);
     for (bfs.keys()) |k| {
         const new_builtin_obj = allocator.create(Object.Builtin) catch @panic("OOM");
         new_builtin_obj.function = bfs.get(k).?;
@@ -28,13 +27,11 @@ pub fn init(builtin_allocator: std.mem.Allocator) std.StringHashMap(*Object.Obje
         const new_obj = allocator.create(Object.Object) catch @panic("OOM");
         new_obj.* = Object.Object{ .builtin = new_builtin_obj };
 
-        result.put(k, new_obj) catch @panic("OOM");
+        bfs_obj_map.put(k, new_obj) catch @panic("OOM");
     }
-
-    return result;
 }
 
-pub fn createError(comptime format: []const u8, args: anytype) *Object.Object {
+fn createError(comptime format: []const u8, args: anytype) *Object.Object {
     const message = std.fmt.allocPrint(allocator, format, args) catch @panic("OOM");
 
     const new_error_obj = allocator.create(Object.Error) catch @panic("OOM");
@@ -163,6 +160,7 @@ fn builtinFunctionPuts(args: std.ArrayList(*Object.Object)) *Object.Object {
     var stdout_buf: [1024]u8 = undefined;
     var stdout: std.Io.Writer = .fixed(&stdout_buf);
     for (args.items) |arg| {
+        // TODO
         arg.inspect(&stdout) catch {};
         stdout.writeByte('\n') catch {};
     }

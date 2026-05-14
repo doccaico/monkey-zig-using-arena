@@ -145,7 +145,7 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
     if (self.nextTokenIs(.ident)) {
         self.nextToken();
     } else {
-        return self.peekStatementError(.ident);
+        return try self.peekStatementError(.ident);
     }
 
     const name = self.allocator.create(Ast.Identifier) catch @panic("OOM");
@@ -157,7 +157,7 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
     if (self.nextTokenIs(.assign)) {
         self.nextToken();
     } else {
-        return self.peekStatementError(.assign);
+        return try self.peekStatementError(.assign);
     }
 
     self.nextToken();
@@ -204,7 +204,7 @@ fn parseExpressionStatement(self: *Parser) anyerror!*Ast.Statement {
 
 fn parseExpression(self: *Parser, precedence: OperatorPrecedence) anyerror!*Ast.Expression {
     const prefixFn = self.prefix_parse_fns.get(self.cur_token.type) orelse {
-        return try self.noPrefixParseFnError(self.cur_token.type);
+        return try self.noPrefixParseFnError(self.cur_token.literal);
     };
     var leftExpr = try prefixFn(self);
 
@@ -235,7 +235,7 @@ fn parseIntegerLiteral(self: *Parser) anyerror!*Ast.Expression {
     ilit.token = self.cur_token;
 
     ilit.value = std.fmt.parseInt(i64, self.cur_token.literal, 10) catch {
-        return self.conversionError(self.cur_token.literal);
+        return try self.conversionError(self.cur_token.literal);
     };
 
     const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
@@ -551,8 +551,8 @@ fn parseHashLiteral(self: *Parser) anyerror!*Ast.Expression {
 // Errors
 
 fn peekStatementError(self: *Parser, expected: TokenType) anyerror!*Ast.Statement {
-    const fmt = "expected next token to be {any}, got {any} instead";
-    const msg = std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type }) catch @panic("OOM");
+    const fmt = "expected next token to be '{any}', got '{any}' instead";
+    const msg = try std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type });
     self.errors.append(self.allocator, msg) catch @panic("OOM");
 
     const s = self.allocator.create(Ast.Statement) catch @panic("OOM");
@@ -561,8 +561,8 @@ fn peekStatementError(self: *Parser, expected: TokenType) anyerror!*Ast.Statemen
 }
 
 fn peekExpressionError(self: *Parser, expected: TokenType) anyerror!*Ast.Expression {
-    const fmt = "expected next token to be {any}, got {any} instead";
-    const msg = std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type }) catch @panic("OOM");
+    const fmt = "expected next token to be '{any}', got '{any}' instead";
+    const msg = try std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type });
     self.errors.append(self.allocator, msg) catch @panic("OOM");
 
     const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
@@ -570,9 +570,9 @@ fn peekExpressionError(self: *Parser, expected: TokenType) anyerror!*Ast.Express
     return e;
 }
 
-fn noPrefixParseFnError(self: *Parser, token_type: TokenType) anyerror!*Ast.Expression {
-    const fmt = "no prefix parse function for {any} found";
-    const msg = std.fmt.allocPrint(self.allocator, fmt, .{token_type}) catch @panic("OOM");
+fn noPrefixParseFnError(self: *Parser, literal: []const u8) anyerror!*Ast.Expression {
+    const fmt = "no prefix parse function for '{s}' found";
+    const msg = try std.fmt.allocPrint(self.allocator, fmt, .{literal});
     try self.errors.append(self.allocator, msg);
 
     const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
@@ -581,8 +581,8 @@ fn noPrefixParseFnError(self: *Parser, token_type: TokenType) anyerror!*Ast.Expr
 }
 
 fn conversionError(self: *Parser, literal: []const u8) anyerror!*Ast.Expression {
-    const fmt = "could not parse {s} as integer";
-    const msg = std.fmt.allocPrint(self.allocator, fmt, .{literal}) catch @panic("OOM");
+    const fmt = "could not parse '{s}' as integer";
+    const msg = try std.fmt.allocPrint(self.allocator, fmt, .{literal});
     try self.errors.append(self.allocator, msg);
 
     const e = self.allocator.create(Ast.Expression) catch @panic("OOM");

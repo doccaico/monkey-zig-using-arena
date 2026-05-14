@@ -47,7 +47,7 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
         else
             line_writer.buffered();
 
-        const line = allocator.dupe(u8, line_tmp) catch @panic("OOM");
+        const line = try allocator.dupe(u8, line_tmp);
 
         if (std.mem.eql(u8, line, ":exit")) break :loop;
         if (std.mem.eql(u8, line, ":quit")) break :loop;

@@ -22,7 +22,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
             switch (x.*) {
                 .return_statement => |y| {
                     const new_node = Allocation.createNode(allocator);
-                    new_node.* = Ast.Node{ .expression = y.return_value };
+                    new_node.* = .{ .expression = y.return_value };
 
                     const result = eval(new_node, env);
                     if (isError(result)) {
@@ -33,19 +33,19 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     new_return_value_obj.value = result.?;
 
                     const new_obj = Allocation.createObject(allocator);
-                    new_obj.* = Object.Object{ .return_value = new_return_value_obj };
+                    new_obj.* = .{ .return_value = new_return_value_obj };
 
                     return new_obj;
                 },
                 .expression_statement => |y| {
                     const new_node = Allocation.createNode(allocator);
-                    new_node.* = Ast.Node{ .expression = y.expression };
+                    new_node.* = .{ .expression = y.expression };
 
                     return eval(new_node, env);
                 },
                 .let_statement => |y| {
                     const new_node = Allocation.createNode(allocator);
-                    new_node.* = Ast.Node{ .expression = y.value };
+                    new_node.* = .{ .expression = y.value };
 
                     const result = eval(new_node, env);
                     if (isError(result)) {
@@ -63,13 +63,13 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     new_integer_obj.value = y.value;
 
                     const new_obj = Allocation.createObject(allocator);
-                    new_obj.* = Object.Object{ .integer = new_integer_obj };
+                    new_obj.* = .{ .integer = new_integer_obj };
 
                     return new_obj;
                 },
                 .prefix_expression => |y| {
                     const new_right_node = Allocation.createNode(allocator);
-                    new_right_node.* = Ast.Node{ .expression = y.right };
+                    new_right_node.* = .{ .expression = y.right };
 
                     const right = eval(new_right_node, env);
                     if (isError(right)) {
@@ -80,7 +80,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                 .infix_expression => |y| {
                     // left
                     const new_left_node = Allocation.createNode(allocator);
-                    new_left_node.* = Ast.Node{ .expression = y.left };
+                    new_left_node.* = .{ .expression = y.left };
 
                     const left = eval(new_left_node, env);
                     if (isError(left)) {
@@ -88,7 +88,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     }
                     // rigth
                     const new_right_node = Allocation.createNode(allocator);
-                    new_right_node.* = Ast.Node{ .expression = y.right };
+                    new_right_node.* = .{ .expression = y.right };
 
                     const right = eval(new_right_node, env);
                     if (isError(right)) {
@@ -113,12 +113,12 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     new_function_obj.env = env;
 
                     const new_obj = Allocation.createObject(allocator);
-                    new_obj.* = Object.Object{ .function = new_function_obj };
+                    new_obj.* = .{ .function = new_function_obj };
                     return new_obj;
                 },
                 .call_expression => |y| {
                     const new_node = Allocation.createNode(allocator);
-                    new_node.* = Ast.Node{ .expression = y.function };
+                    new_node.* = .{ .expression = y.function };
 
                     const result = eval(new_node, env);
 
@@ -138,7 +138,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     new_string_obj.value = y.value;
 
                     const new_obj = Allocation.createObject(allocator);
-                    new_obj.* = Object.Object{ .string = new_string_obj };
+                    new_obj.* = .{ .string = new_string_obj };
 
                     return new_obj;
                 },
@@ -152,14 +152,14 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     new_array_obj.elements = elements;
 
                     const new_obj = Allocation.createObject(allocator);
-                    new_obj.* = Object.Object{ .array = new_array_obj };
+                    new_obj.* = .{ .array = new_array_obj };
 
                     return new_obj;
                 },
                 .index_expression => |y| {
                     // left
                     const new_left_node = Allocation.createNode(allocator);
-                    new_left_node.* = Ast.Node{ .expression = y.left };
+                    new_left_node.* = .{ .expression = y.left };
 
                     const left = eval(new_left_node, env);
                     if (isError(left)) {
@@ -167,7 +167,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) ?*Object.Object {
                     }
                     // index
                     const new_index_node = Allocation.createNode(allocator);
-                    new_index_node.* = Ast.Node{ .expression = y.index };
+                    new_index_node.* = .{ .expression = y.index };
 
                     const index = eval(new_index_node, env);
                     if (isError(index)) {
@@ -191,7 +191,7 @@ fn evalProgram(node: *Ast.Node, env: *Environment) ?*Object.Object {
 
     for (node.program.statements.items) |stmt| {
         const new_node = Allocation.createNode(allocator);
-        new_node.* = Ast.Node{ .statement = stmt };
+        new_node.* = .{ .statement = stmt };
 
         result = eval(new_node, env);
 
@@ -230,7 +230,7 @@ fn evalIntegerLiteral(il: *Ast.IntegerLiteral) *Object.Object {
     new_integer_obj.value = il.value;
 
     const new_obj = Allocation.createObject(allocator);
-    new_obj.* = Object.Object{ .integer = new_integer_obj };
+    new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
 
@@ -262,7 +262,7 @@ fn evalPrefixMinusExpression(right: *Object.Object) *Object.Object {
     new_integer_obj.value = -value;
 
     const new_obj = Allocation.createObject(allocator);
-    new_obj.* = Object.Object{ .integer = new_integer_obj };
+    new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
 
@@ -293,7 +293,7 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             new_integer_obj.value = left.integer.value + right.integer.value;
 
             const new_obj = Allocation.createObject(allocator);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -302,7 +302,7 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             new_integer_obj.value = left.integer.value - right.integer.value;
 
             const new_obj = Allocation.createObject(allocator);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -311,7 +311,7 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             new_integer_obj.value = left.integer.value * right.integer.value;
 
             const new_obj = Allocation.createObject(allocator);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -320,7 +320,7 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             new_integer_obj.value = @divTrunc(left.integer.value, right.integer.value);
 
             const new_obj = Allocation.createObject(allocator);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -354,14 +354,14 @@ fn evalStringInfixExpression(op: []const u8, left: *Object.Object, right: *Objec
     new_string_obj.value = s;
 
     const new_obj = Allocation.createObject(allocator);
-    new_obj.* = Object.Object{ .string = new_string_obj };
+    new_obj.* = .{ .string = new_string_obj };
 
     return new_obj;
 }
 
 fn evalIfExpression(ie: *Ast.IfExpression, env: *Environment) *Object.Object {
     const new_node = Allocation.createNode(allocator);
-    new_node.* = Ast.Node{ .expression = ie.condition };
+    new_node.* = .{ .expression = ie.condition };
 
     const condition = eval(new_node, env);
     if (isError(condition)) {
@@ -392,7 +392,7 @@ fn evalExpressions(exps: std.ArrayList(*Ast.Expression), env: *Environment) std.
     var result: std.ArrayList(*Object.Object) = .empty;
     for (exps.items) |e| {
         const new_node = Allocation.createNode(allocator);
-        new_node.* = Ast.Node{ .expression = e };
+        new_node.* = .{ .expression = e };
 
         const evaluated = eval(new_node, env).?;
         if (isError(evaluated)) {
@@ -466,7 +466,7 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
         const value_node = entry.value_ptr.*;
 
         const new_key_node = Allocation.createNode(allocator);
-        new_key_node.* = Ast.Node{ .expression = key_node };
+        new_key_node.* = .{ .expression = key_node };
         var key = eval(new_key_node, env);
 
         if (isError(key)) {
@@ -482,7 +482,7 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
         }
 
         const new_value_node = Allocation.createNode(allocator);
-        new_value_node.* = Ast.Node{ .expression = value_node };
+        new_value_node.* = .{ .expression = value_node };
         const value = eval(new_value_node, env);
 
         if (isError(value)) {
@@ -500,7 +500,7 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
     new_hash_obj.pairs = pairs;
 
     const new_obj = Allocation.createObject(allocator);
-    new_obj.* = Object.Object{ .hash = new_hash_obj };
+    new_obj.* = .{ .hash = new_hash_obj };
     return new_obj;
 }
 

@@ -120,7 +120,7 @@ fn push(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
         return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=2", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return try Allocation.createError(allocator, "argument to `push` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return try Allocation.createError(allocator, "argument to `push` must be {s}, got {s}", .{ Object.ARRAY_OBJ, args.items[0].getType() });
     }
 
     const arr = args.items[0].array;

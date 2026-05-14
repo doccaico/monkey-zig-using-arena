@@ -36,7 +36,7 @@ pub fn init(builtins_allocator: std.mem.Allocator) void {
 
 fn builtinFunctionLen(args: std.ArrayList(*Object.Object)) *Object.Object {
     if (args.items.len != 1) {
-        return Allocation.createErrorMsg(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     switch (args.items[0].*) {
         .array => |x| {
@@ -57,16 +57,16 @@ fn builtinFunctionLen(args: std.ArrayList(*Object.Object)) *Object.Object {
 
             return new_obj;
         },
-        else => return Allocation.createErrorMsg(allocator, "argument to `len` not supported, got {s}", .{args.items[0].getType()}),
+        else => return Allocation.createError(allocator, "argument to `len` not supported, got {s}", .{args.items[0].getType()}),
     }
 }
 
 fn builtinFunctionFirst(args: std.ArrayList(*Object.Object)) *Object.Object {
     if (args.items.len != 1) {
-        return Allocation.createErrorMsg(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return Allocation.createErrorMsg(allocator, "argument to `first` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return Allocation.createError(allocator, "argument to `first` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -79,10 +79,10 @@ fn builtinFunctionFirst(args: std.ArrayList(*Object.Object)) *Object.Object {
 
 fn builtinFunctionLast(args: std.ArrayList(*Object.Object)) *Object.Object {
     if (args.items.len != 1) {
-        return Allocation.createErrorMsg(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return Allocation.createErrorMsg(allocator, "argument to `last` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return Allocation.createError(allocator, "argument to `last` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -96,10 +96,10 @@ fn builtinFunctionLast(args: std.ArrayList(*Object.Object)) *Object.Object {
 
 fn builtinFunctionRest(args: std.ArrayList(*Object.Object)) *Object.Object {
     if (args.items.len != 1) {
-        return Allocation.createErrorMsg(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return Allocation.createErrorMsg(allocator, "argument to `rest` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return Allocation.createError(allocator, "argument to `rest` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -122,10 +122,10 @@ fn builtinFunctionRest(args: std.ArrayList(*Object.Object)) *Object.Object {
 
 fn builtinFunctionPush(args: std.ArrayList(*Object.Object)) *Object.Object {
     if (args.items.len != 2) {
-        return Allocation.createErrorMsg(allocator, "wrong number of arguments. got={d}, want=2", .{args.items.len});
+        return Allocation.createError(allocator, "wrong number of arguments. got={d}, want=2", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return Allocation.createErrorMsg(allocator, "argument to `push` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return Allocation.createError(allocator, "argument to `push` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;

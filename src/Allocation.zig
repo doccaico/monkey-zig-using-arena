@@ -13,11 +13,6 @@ pub inline fn createObject(allocator: std.mem.Allocator) *Object.Object {
     return new_obj;
 }
 
-pub inline fn createError(allocator: std.mem.Allocator) *Object.Error {
-    const new_obj = allocator.create(Object.Error) catch @panic("OOM");
-    return new_obj;
-}
-
 pub inline fn createReturnValue(allocator: std.mem.Allocator) *Object.ReturnValue {
     const new_obj = allocator.create(Object.ReturnValue) catch @panic("OOM");
     return new_obj;
@@ -48,13 +43,13 @@ pub inline fn createHash(allocator: std.mem.Allocator) *Object.Hash {
     return new_obj;
 }
 
-pub fn createErrorMsg(allocator: std.mem.Allocator, comptime format: []const u8, args: anytype) *Object.Object {
+pub fn createError(allocator: std.mem.Allocator, comptime format: []const u8, args: anytype) *Object.Object {
     const message = std.fmt.allocPrint(allocator, format, args) catch @panic("OOM");
 
-    const new_error_obj = createError(allocator);
+    const new_error_obj = allocator.create(Object.Error) catch @panic("OOM");
     new_error_obj.message = message;
 
     const new_obj = createObject(allocator);
-    new_obj.* = Object.Object{ .@"error" = new_error_obj };
+    new_obj.* = .{ .@"error" = new_error_obj };
     return new_obj;
 }

@@ -240,7 +240,7 @@ fn evalPrefixExpression(operator: []const u8, right: *Object.Object) *Object.Obj
     } else if (std.mem.eql(u8, operator, "-")) {
         return evalPrefixMinusExpression(right);
     } else {
-        return Allocation.createErrorMsg(allocator, "unknown operator: {s}{s}", .{ operator, right.getType() });
+        return Allocation.createError(allocator, "unknown operator: {s}{s}", .{ operator, right.getType() });
     }
 }
 
@@ -253,7 +253,7 @@ fn evalPrefixBangExpression(right: *Object.Object) *Object.Object {
 
 fn evalPrefixMinusExpression(right: *Object.Object) *Object.Object {
     if (!std.mem.eql(u8, right.getType(), Object.INTEGER_OBJ)) {
-        return Allocation.createErrorMsg(allocator, "unknown operator: -{s}", .{right.getType()});
+        return Allocation.createError(allocator, "unknown operator: -{s}", .{right.getType()});
     }
 
     const value = right.integer.value;
@@ -280,9 +280,9 @@ fn evalInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Obje
     } else if (std.mem.eql(u8, op, "!=")) {
         return nativeBoolToBooleanObject(left.boolean.value != right.boolean.value);
     } else if (!std.mem.eql(u8, left.getType(), right.getType())) {
-        return Allocation.createErrorMsg(allocator, "type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return Allocation.createError(allocator, "type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     } else {
-        return Allocation.createErrorMsg(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 }
 
@@ -337,14 +337,14 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             if (std.mem.eql(u8, op, "!=")) {
                 return nativeBoolToBooleanObject(left.integer.value != right.integer.value);
             }
-            return Allocation.createErrorMsg(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+            return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
         },
     }
 }
 
 fn evalStringInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) *Object.Object {
     if (!std.mem.eql(u8, op, "+")) {
-        return Allocation.createErrorMsg(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 
     const slice = &[_][]const u8{ left.string.value, right.string.value };
@@ -385,7 +385,7 @@ fn evalIdentifier(ident: *Ast.Identifier, env: *Environment) *Object.Object {
     if (builtin != null) {
         return builtin.?;
     }
-    return Allocation.createErrorMsg(allocator, "identifier not found: {s}", .{ident.value});
+    return Allocation.createError(allocator, "identifier not found: {s}", .{ident.value});
 }
 
 fn evalExpressions(exps: std.ArrayList(*Ast.Expression), env: *Environment) std.ArrayList(*Object.Object) {
@@ -414,7 +414,7 @@ fn applyFunction(env: *Environment, func: *Object.Object, args: std.ArrayList(*O
         .builtin => |x| {
             return x.function(args);
         },
-        else => return Allocation.createErrorMsg(allocator, "not a function: {s}", .{func.getType()}),
+        else => return Allocation.createError(allocator, "not a function: {s}", .{func.getType()}),
     }
 }
 
@@ -441,7 +441,7 @@ fn evalIndexExpression(left: *Object.Object, index: *Object.Object) *Object.Obje
     } else if (std.mem.eql(u8, left.getType(), Object.HASH_OBJ)) {
         return evalHashIndexExpression(left, index);
     } else {
-        return Allocation.createErrorMsg(allocator, "index operator not supported: {s}", .{left.getType()});
+        return Allocation.createError(allocator, "index operator not supported: {s}", .{left.getType()});
     }
 }
 
@@ -478,7 +478,7 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) *Object.Object {
             .boolean => |x| hk = Object.Object{ .boolean = x },
             .integer => |x| hk = Object.Object{ .integer = x },
             .string => |x| hk = Object.Object{ .string = x },
-            else => return Allocation.createErrorMsg(allocator, "unusable as hash key: {s}", .{key.?.getType()}),
+            else => return Allocation.createError(allocator, "unusable as hash key: {s}", .{key.?.getType()}),
         }
 
         const new_value_node = Allocation.createNode(allocator);
@@ -512,7 +512,7 @@ fn evalHashIndexExpression(hash: *Object.Object, index: *Object.Object) *Object.
         .boolean => |x| key = Object.Object{ .boolean = x },
         .integer => |x| key = Object.Object{ .integer = x },
         .string => |x| key = Object.Object{ .string = x },
-        else => return Allocation.createErrorMsg(allocator, "unusable as hash key: {s}", .{index.getType()}),
+        else => return Allocation.createError(allocator, "unusable as hash key: {s}", .{index.getType()}),
     }
     const pair = hash_obj.pairs.get(Object.hashKey(key)) orelse return Environment.NULL;
     return pair.value;

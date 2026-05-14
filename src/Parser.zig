@@ -36,7 +36,7 @@ const OperatorPrecedence = enum(u8) {
 const prefixParseFn = *const fn (*Parser) *Ast.Expression;
 const infixParseFn = *const fn (*Parser, *Ast.Expression) *Ast.Expression;
 
-pub fn init(allocator: std.mem.Allocator, lexer: Lexer) !Parser {
+pub fn init(allocator: std.mem.Allocator, lexer: Lexer) anyerror!Parser {
     var parser = Parser{
         .allocator = allocator,
         .lexer = lexer,
@@ -74,11 +74,11 @@ pub fn init(allocator: std.mem.Allocator, lexer: Lexer) !Parser {
     return parser;
 }
 
-pub fn registerPrefix(self: *Parser, token_type: TokenType, func: prefixParseFn) !void {
+pub fn registerPrefix(self: *Parser, token_type: TokenType, func: prefixParseFn) anyerror!void {
     try self.prefix_parse_fns.put(token_type, func);
 }
 
-pub fn registerInfix(self: *Parser, token_type: TokenType, func: infixParseFn) !void {
+pub fn registerInfix(self: *Parser, token_type: TokenType, func: infixParseFn) anyerror!void {
     try self.infix_parse_fns.put(token_type, func);
 }
 
@@ -1254,7 +1254,7 @@ test "TestStringLiteralExpression" {
 
 test "TestParsingArrayLiterals" {
     const S = struct {
-        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) !void {
+        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) anyerror!void {
             const e = expr.infix_expression;
             try std.testing.expectEqual(e.left.integer_literal.value, a);
             try std.testing.expectEqualStrings(e.operator, b);
@@ -1288,7 +1288,7 @@ test "TestParsingArrayLiterals" {
 
 test "TestParsingIndexExpressions" {
     const S = struct {
-        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) !void {
+        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) anyerror!void {
             const e = expr.infix_expression;
             try std.testing.expectEqual(e.left.integer_literal.value, a);
             try std.testing.expectEqualStrings(e.operator, b);
@@ -1382,19 +1382,19 @@ test "TestParsingEmptyHashLiteral" {
 
 test "TestParsingHashLiteralsWithExpressions" {
     const S = struct {
-        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) !void {
+        fn testInfixExpression(expr: *Ast.Expression, a: i64, b: []const u8, c: i64) anyerror!void {
             const e = expr.infix_expression;
             try std.testing.expectEqual(e.left.integer_literal.value, a);
             try std.testing.expectEqualStrings(e.operator, b);
             try std.testing.expectEqual(e.right.integer_literal.value, c);
         }
-        fn f1(expr: *Ast.Expression) !void {
+        fn f1(expr: *Ast.Expression) anyerror!void {
             try testInfixExpression(expr, 0, "+", 1);
         }
-        fn f2(expr: *Ast.Expression) !void {
+        fn f2(expr: *Ast.Expression) anyerror!void {
             try testInfixExpression(expr, 10, "-", 8);
         }
-        fn f3(expr: *Ast.Expression) !void {
+        fn f3(expr: *Ast.Expression) anyerror!void {
             try testInfixExpression(expr, 15, "/", 5);
         }
     };

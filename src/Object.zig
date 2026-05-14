@@ -30,7 +30,7 @@ pub const Object = union(enum(u8)) {
     array: *Array,
     hash: *Hash,
 
-    pub fn inspect(self: Object, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: Object, writer: *std.Io.Writer) anyerror!void {
         switch (self) {
             inline else => |x| try x.inspect(writer),
         }
@@ -46,7 +46,7 @@ pub const Object = union(enum(u8)) {
 pub const Integer = struct {
     value: i64,
 
-    pub fn inspect(self: Integer, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: Integer, writer: *std.Io.Writer) anyerror!void {
         try writer.print("{d}", .{self.value});
     }
 
@@ -58,7 +58,7 @@ pub const Integer = struct {
 pub const Boolean = struct {
     value: bool,
 
-    pub fn inspect(self: Boolean, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: Boolean, writer: *std.Io.Writer) anyerror!void {
         try writer.print("{}", .{self.value});
     }
 
@@ -68,7 +68,7 @@ pub const Boolean = struct {
 };
 
 pub const Null = struct {
-    pub fn inspect(_: Null, writer: *std.Io.Writer) !void {
+    pub fn inspect(_: Null, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("null");
     }
 
@@ -94,7 +94,7 @@ pub const ReturnValue = struct {
 pub const Error = struct {
     message: []const u8,
 
-    pub fn inspect(self: Error, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: Error, writer: *std.Io.Writer) anyerror!void {
         try writer.print("ERROR: {s}", .{self.message});
     }
 
@@ -108,7 +108,7 @@ pub const Function = struct {
     body: *Ast.BlockStatement,
     env: *Environment,
 
-    pub fn inspect(self: Function, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: Function, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("fn");
         try writer.writeAll("(");
         const size = self.parameters.items.len;
@@ -131,7 +131,7 @@ pub const Function = struct {
 pub const String = struct {
     value: []const u8,
 
-    pub fn inspect(self: String, writer: *std.Io.Writer) !void {
+    pub fn inspect(self: String, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll(self.value);
     }
 
@@ -143,7 +143,7 @@ pub const String = struct {
 pub const Builtin = struct {
     function: BuiltinFunction,
 
-    pub fn inspect(_: Builtin, writer: *std.Io.Writer) !void {
+    pub fn inspect(_: Builtin, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("builtin function");
     }
 

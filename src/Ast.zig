@@ -8,7 +8,7 @@ pub const Node = union(enum) {
     statement: *Statement,
     expression: *Expression,
 
-    pub fn string(self: Node, writer: *std.Io.Writer) !void {
+    pub fn string(self: Node, writer: *std.Io.Writer) anyerror!void {
         switch (self) {
             inline else => |x| try x.string(writer),
         }
@@ -57,7 +57,7 @@ pub const Statement = union(enum(u8)) {
         };
     }
 
-    pub fn string(self: Statement, writer: *std.Io.Writer) !void {
+    pub fn string(self: Statement, writer: *std.Io.Writer) anyerror!void {
         return switch (self) {
             inline else => |x| x.string(writer),
             .@"error" => {},
@@ -80,7 +80,7 @@ pub const LetStatement = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: LetStatement, writer: *std.Io.Writer) !void {
+    pub fn string(self: LetStatement, writer: *std.Io.Writer) anyerror!void {
         try writer.print("{s} ", .{self.tokenLiteral()});
         try self.name.string(writer);
         _ = try writer.write(" = ");
@@ -103,7 +103,7 @@ pub const ReturnStatement = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: ReturnStatement, writer: *std.Io.Writer) !void {
+    pub fn string(self: ReturnStatement, writer: *std.Io.Writer) anyerror!void {
         try writer.print("{s} ", .{self.tokenLiteral()});
         try self.return_value.string(writer);
         _ = try writer.write(";");
@@ -124,7 +124,7 @@ pub const ExpressionStatement = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: ExpressionStatement, writer: *std.Io.Writer) !void {
+    pub fn string(self: ExpressionStatement, writer: *std.Io.Writer) anyerror!void {
         try self.expression.string(writer);
     }
 };
@@ -144,7 +144,7 @@ pub const BlockStatement = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: BlockStatement, writer: *std.Io.Writer) !void {
+    pub fn string(self: BlockStatement, writer: *std.Io.Writer) anyerror!void {
         for (self.statements.items) |stmt| {
             try stmt.string(writer);
         }
@@ -191,7 +191,7 @@ pub const Identifier = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: Identifier, writer: *std.Io.Writer) !void {
+    pub fn string(self: Identifier, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll(self.value);
     }
 };
@@ -204,7 +204,7 @@ pub const IntegerLiteral = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: IntegerLiteral, writer: *std.Io.Writer) !void {
+    pub fn string(self: IntegerLiteral, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll(self.token.literal);
     }
 };
@@ -218,7 +218,7 @@ pub const PrefixExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: PrefixExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: PrefixExpression, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("(");
         try writer.writeAll(self.operator);
         try self.right.string(writer);
@@ -236,7 +236,7 @@ pub const InfixExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: InfixExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: InfixExpression, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("(");
         try self.left.string(writer);
         try writer.print(" {s} ", .{self.operator});
@@ -253,7 +253,7 @@ pub const BooleanExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: BooleanExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: BooleanExpression, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll(self.token.literal);
     }
 };
@@ -268,7 +268,7 @@ pub const IfExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: IfExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: IfExpression, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("if");
         try self.condition.string(writer);
         try writer.writeAll(" ");
@@ -298,7 +298,7 @@ pub const FunctionLiteral = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: FunctionLiteral, writer: *std.Io.Writer) !void {
+    pub fn string(self: FunctionLiteral, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("fn");
         try writer.writeAll("(");
         const size = self.parameters.items.len;
@@ -331,7 +331,7 @@ pub const CallExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: CallExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: CallExpression, writer: *std.Io.Writer) anyerror!void {
         try self.function.string(writer);
         try writer.writeAll("(");
         const size = self.arguments.items.len;
@@ -353,7 +353,7 @@ pub const StringLiteral = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: StringLiteral, writer: *std.Io.Writer) !void {
+    pub fn string(self: StringLiteral, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll(self.token.literal);
         try writer.flush();
     }
@@ -367,7 +367,7 @@ pub const ArrayLiteral = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: ArrayLiteral, writer: *std.Io.Writer) !void {
+    pub fn string(self: ArrayLiteral, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("[");
         const size = self.elements.items.len;
         for (self.elements.items, 0..) |arg, i| {
@@ -389,7 +389,7 @@ pub const IndexExpression = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: IndexExpression, writer: *std.Io.Writer) !void {
+    pub fn string(self: IndexExpression, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("(");
         try self.left.string(writer);
         try writer.writeAll("[");
@@ -406,7 +406,7 @@ pub const HashLiteral = struct {
         return self.token.literal;
     }
 
-    pub fn string(self: HashLiteral, writer: *std.Io.Writer) !void {
+    pub fn string(self: HashLiteral, writer: *std.Io.Writer) anyerror!void {
         try writer.writeAll("{");
 
         const size = self.pairs.count();

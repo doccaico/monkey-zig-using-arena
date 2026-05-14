@@ -1288,7 +1288,7 @@ test "TestHashLiterals" {
         var obj4: Object.Object = undefined;
         var obj5: Object.Object = undefined;
         var obj6: Object.Object = undefined;
-        fn createHashMap(a: std.mem.Allocator) !HashType {
+        fn createHashMap(a: std.mem.Allocator) anyerror!HashType {
             obj1 = blk: {
                 const new_string_obj = try a.create(Object.String);
                 new_string_obj.value = "one";

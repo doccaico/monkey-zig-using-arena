@@ -21,7 +21,7 @@ const MONKEY_FACE =
     \\           '-----'
 ;
 
-pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.Io.Writer) !void {
+pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.Io.Writer) anyerror!void {
     var line_buf: [1024]u8 = undefined;
 
     const env = Environment.init(allocator);
@@ -74,7 +74,7 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
     try stdout.flush();
 }
 
-fn printParserErrors(stdout: *std.Io.Writer, errors: std.ArrayList([]const u8)) !void {
+fn printParserErrors(stdout: *std.Io.Writer, errors: std.ArrayList([]const u8)) anyerror!void {
     try stdout.print("{s}\n", .{MONKEY_FACE});
     _ = try stdout.write("Woops! We ran into some monkey business here!\n");
     for (errors.items) |msg| {

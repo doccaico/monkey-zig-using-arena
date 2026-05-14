@@ -108,9 +108,9 @@ test "TestEnvironment" {
 
         Parser.checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(allocator);
+        Evaluator.init(allocator);
 
-        const result = evaluator.eval(node, env);
+        const result = Evaluator.eval(node, env);
 
         {
             const expected = t[1];

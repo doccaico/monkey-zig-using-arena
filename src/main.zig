@@ -1,9 +1,8 @@
 const std = @import("std");
-const Io = std.Io;
 
 const repl = @import("Repl.zig");
 
-pub fn main(init: std.process.Init) !void {
+pub fn main(init: std.process.Init) anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
 

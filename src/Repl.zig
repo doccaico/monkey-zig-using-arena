@@ -61,9 +61,9 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
             continue;
         }
 
-        var evaluator = Evaluator.init(allocator);
+        Evaluator.init(allocator);
 
-        if (evaluator.eval(node_program, env)) |result| {
+        if (Evaluator.eval(node_program, env)) |result| {
             try result.inspect(stdout);
             try stdout.writeByte('\n');
         }
@@ -116,9 +116,9 @@ test "TestRepl" {
 
         Parser.checkParserErrors(parser);
 
-        var evaluator = Evaluator.init(allocator);
+        Evaluator.init(allocator);
 
-        const result = evaluator.eval(node_program, env);
+        const result = Evaluator.eval(node_program, env);
 
         {
             const expected = t[1];

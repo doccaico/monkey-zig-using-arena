@@ -218,7 +218,6 @@ fn parseExpression(self: *Parser, precedence: OperatorPrecedence) anyerror!*Ast.
         self.nextToken();
         leftExpr = try infixFn(self, leftExpr);
     }
-
     return leftExpr;
 }
 
@@ -296,7 +295,6 @@ fn parseGroupedExpression(self: *Parser) anyerror!*Ast.Expression {
     } else {
         return try self.peekExpressionError(.rparen);
     }
-
     return ge;
 }
 

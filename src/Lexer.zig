@@ -59,7 +59,7 @@ pub fn nextToken(self: *Lexer) Token {
         ']' => token = Token{ .type = .rbracket, .literal = "]" },
         ':' => token = Token{ .type = .colon, .literal = ":" },
         '"' => token = Token{ .type = .string, .literal = self.readString() },
-        0 => token = Token{ .type = .eof, .literal = "" },
+        '\u{0}' => token = Token{ .type = .eof, .literal = "" },
         else => {
             if (isLetter(self.ch)) {
                 const ident_literal = self.readIdentifier();

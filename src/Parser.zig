@@ -148,7 +148,7 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
         return try self.peekStatementError(.ident);
     }
 
-    const name = self.allocator.create(Ast.Identifier) catch @panic("OOM");
+    const name = try self.allocator.create(Ast.Identifier);
     name.token = self.cur_token;
     name.value = self.cur_token.literal;
 
@@ -168,7 +168,7 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
         self.nextToken();
     }
 
-    const s = self.allocator.create(Ast.Statement) catch @panic("OOM");
+    const s = try self.allocator.create(Ast.Statement);
     s.* = Ast.Statement{ .let_statement = ls };
     return s;
 }
@@ -185,7 +185,7 @@ fn parseReturnStatement(self: *Parser) anyerror!*Ast.Statement {
         self.nextToken();
     }
 
-    const s = self.allocator.create(Ast.Statement) catch @panic("OOM");
+    const s = try self.allocator.create(Ast.Statement);
     s.* = Ast.Statement{ .return_statement = rs };
     return s;
 }
@@ -199,7 +199,7 @@ fn parseExpressionStatement(self: *Parser) anyerror!*Ast.Statement {
         self.nextToken();
     }
 
-    const s = self.allocator.create(Ast.Statement) catch @panic("OOM");
+    const s = try self.allocator.create(Ast.Statement);
     s.* = Ast.Statement{ .expression_statement = es };
     return s;
 }
@@ -223,30 +223,30 @@ fn parseExpression(self: *Parser, precedence: OperatorPrecedence) anyerror!*Ast.
 }
 
 fn parseIdentifier(self: *Parser) anyerror!*Ast.Expression {
-    const ident = self.allocator.create(Ast.Identifier) catch @panic("OOM");
+    const ident = try self.allocator.create(Ast.Identifier);
     ident.token = self.cur_token;
     ident.value = self.cur_token.literal;
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .identifier = ident };
     return e;
 }
 
 fn parseIntegerLiteral(self: *Parser) anyerror!*Ast.Expression {
-    const ilit = self.allocator.create(Ast.IntegerLiteral) catch @panic("OOM");
+    const ilit = try self.allocator.create(Ast.IntegerLiteral);
     ilit.token = self.cur_token;
 
     ilit.value = std.fmt.parseInt(i64, self.cur_token.literal, 10) catch {
         return try self.conversionError(self.cur_token.literal);
     };
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .integer_literal = ilit };
     return e;
 }
 
 fn parsePrefixExpression(self: *Parser) anyerror!*Ast.Expression {
-    const pe = self.allocator.create(Ast.PrefixExpression) catch @panic("OOM");
+    const pe = try self.allocator.create(Ast.PrefixExpression);
     pe.token = self.cur_token;
     pe.operator = self.cur_token.literal;
 
@@ -254,13 +254,13 @@ fn parsePrefixExpression(self: *Parser) anyerror!*Ast.Expression {
 
     pe.right = try self.parseExpression(.prefix);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .prefix_expression = pe };
     return e;
 }
 
 fn parseInfixExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expression {
-    const ie = self.allocator.create(Ast.InfixExpression) catch @panic("OOM");
+    const ie = try self.allocator.create(Ast.InfixExpression);
     ie.token = self.cur_token;
     ie.operator = self.cur_token.literal;
     ie.left = left;
@@ -271,17 +271,17 @@ fn parseInfixExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expr
 
     ie.right = try self.parseExpression(precedence);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .infix_expression = ie };
     return e;
 }
 
 fn parseBooleanExpression(self: *Parser) anyerror!*Ast.Expression {
-    const b = self.allocator.create(Ast.BooleanExpression) catch @panic("OOM");
+    const b = try self.allocator.create(Ast.BooleanExpression);
     b.token = self.cur_token;
     b.value = self.curTokenIs(.true);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .boolean = b };
     return e;
 }
@@ -301,7 +301,7 @@ fn parseGroupedExpression(self: *Parser) anyerror!*Ast.Expression {
 }
 
 fn parseIfExpression(self: *Parser) anyerror!*Ast.Expression {
-    const ie = self.allocator.create(Ast.IfExpression) catch @panic("OOM");
+    const ie = try self.allocator.create(Ast.IfExpression);
     ie.token = self.cur_token;
     ie.alternative = null;
 
@@ -341,7 +341,7 @@ fn parseIfExpression(self: *Parser) anyerror!*Ast.Expression {
         ie.alternative = try self.parseBlockStatement();
     }
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .if_expression = ie };
     return e;
 }
@@ -382,7 +382,7 @@ fn parseFunctionLiteral(self: *Parser) anyerror!*Ast.Expression {
 
     fl.body = try self.parseBlockStatement();
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .function_literal = fl };
     return e;
 }
@@ -395,19 +395,19 @@ fn parseFunctionParameters(self: *Parser, params: *std.ArrayList(*Ast.Identifier
 
     self.nextToken();
 
-    const ident1 = self.allocator.create(Ast.Identifier) catch @panic("OOM");
+    const ident1 = try self.allocator.create(Ast.Identifier);
     ident1.token = self.cur_token;
     ident1.value = self.cur_token.literal;
-    params.append(self.allocator, ident1) catch @panic("OOM");
+    try params.append(self.allocator, ident1);
 
     while (self.nextTokenIs(.comma)) {
         self.nextToken();
         self.nextToken();
 
-        const ident2 = self.allocator.create(Ast.Identifier) catch @panic("OOM");
+        const ident2 = try self.allocator.create(Ast.Identifier);
         ident2.token = self.cur_token;
         ident2.value = self.cur_token.literal;
-        params.append(self.allocator, ident2) catch @panic("OOM");
+        try params.append(self.allocator, ident2);
     }
 
     if (self.nextTokenIs(.rparen)) {
@@ -423,7 +423,7 @@ fn parseCallExpression(self: *Parser, function: *Ast.Expression) anyerror!*Ast.E
     ce.function = function;
     ce.arguments = try self.parseExpressionList(.rparen);
 
-    const expr = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const expr = try self.allocator.create(Ast.Expression);
     expr.* = Ast.Expression{ .call_expression = ce };
     return expr;
 }
@@ -453,22 +453,22 @@ fn parseCallArguments(self: *Parser, args: *std.ArrayList(*Ast.Expression)) anye
 }
 
 fn parseStringLiteral(self: *Parser) anyerror!*Ast.Expression {
-    const s = self.allocator.create(Ast.StringLiteral) catch @panic("OOM");
+    const s = try self.allocator.create(Ast.StringLiteral);
     s.token = self.cur_token;
     s.value = self.cur_token.literal;
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .string_literal = s };
     return e;
 }
 
 fn parseArrayLiteral(self: *Parser) anyerror!*Ast.Expression {
-    const a = self.allocator.create(Ast.ArrayLiteral) catch @panic("OOM");
+    const a = try self.allocator.create(Ast.ArrayLiteral);
     a.token = self.cur_token;
 
     a.elements = try self.parseExpressionList(.rbracket);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .array_literal = a };
     return e;
 }
@@ -499,7 +499,7 @@ fn parseExpressionList(self: *Parser, end: TokenType) anyerror!std.ArrayList(*As
 }
 
 fn parseIndexExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expression {
-    const ie = self.allocator.create(Ast.IndexExpression) catch @panic("OOM");
+    const ie = try self.allocator.create(Ast.IndexExpression);
     ie.token = self.cur_token;
     ie.left = left;
 
@@ -512,13 +512,13 @@ fn parseIndexExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expr
         return try self.peekExpressionError(.rbracket);
     }
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .index_expression = ie };
     return e;
 }
 
 fn parseHashLiteral(self: *Parser) anyerror!*Ast.Expression {
-    const h = self.allocator.create(Ast.HashLiteral) catch @panic("OOM");
+    const h = try self.allocator.create(Ast.HashLiteral);
     h.token = self.cur_token;
     h.pairs = std.AutoHashMap(*Ast.Expression, *Ast.Expression).init(self.allocator);
 
@@ -552,7 +552,7 @@ fn parseHashLiteral(self: *Parser) anyerror!*Ast.Expression {
         return try self.peekExpressionError(.rbrace);
     }
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .hash_literal = h };
     return e;
 }
@@ -562,9 +562,9 @@ fn parseHashLiteral(self: *Parser) anyerror!*Ast.Expression {
 fn peekStatementError(self: *Parser, expected: TokenType) anyerror!*Ast.Statement {
     const fmt = "expected next token to be '{any}', got '{any}' instead";
     const msg = try std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type });
-    self.errors.append(self.allocator, msg) catch @panic("OOM");
+    try self.errors.append(self.allocator, msg);
 
-    const s = self.allocator.create(Ast.Statement) catch @panic("OOM");
+    const s = try self.allocator.create(Ast.Statement);
     s.* = Ast.Statement{ .@"error" = ParserError.UnexpectedToken };
     return s;
 }
@@ -572,9 +572,9 @@ fn peekStatementError(self: *Parser, expected: TokenType) anyerror!*Ast.Statemen
 fn peekExpressionError(self: *Parser, expected: TokenType) anyerror!*Ast.Expression {
     const fmt = "expected next token to be '{any}', got '{any}' instead";
     const msg = try std.fmt.allocPrint(self.allocator, fmt, .{ expected, self.next_token.type });
-    self.errors.append(self.allocator, msg) catch @panic("OOM");
+    try self.errors.append(self.allocator, msg);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .@"error" = ParserError.UnexpectedToken };
     return e;
 }
@@ -584,7 +584,7 @@ fn noPrefixParseFnError(self: *Parser, literal: []const u8) anyerror!*Ast.Expres
     const msg = try std.fmt.allocPrint(self.allocator, fmt, .{literal});
     try self.errors.append(self.allocator, msg);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .@"error" = ParserError.NoPrefixParseFunction };
     return e;
 }
@@ -594,7 +594,7 @@ fn conversionError(self: *Parser, literal: []const u8) anyerror!*Ast.Expression 
     const msg = try std.fmt.allocPrint(self.allocator, fmt, .{literal});
     try self.errors.append(self.allocator, msg);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    const e = try self.allocator.create(Ast.Expression);
     e.* = Ast.Expression{ .@"error" = ParserError.ConversionFailed };
     return e;
 }

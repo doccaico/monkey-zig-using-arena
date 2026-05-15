@@ -74,11 +74,11 @@ pub fn init(allocator: std.mem.Allocator, lexer: Lexer) anyerror!Parser {
     return parser;
 }
 
-pub fn registerPrefix(self: *Parser, token_type: TokenType, func: prefixParseFn) anyerror!void {
+inline fn registerPrefix(self: *Parser, token_type: TokenType, func: prefixParseFn) anyerror!void {
     try self.prefix_parse_fns.put(token_type, func);
 }
 
-pub fn registerInfix(self: *Parser, token_type: TokenType, func: infixParseFn) anyerror!void {
+inline fn registerInfix(self: *Parser, token_type: TokenType, func: infixParseFn) anyerror!void {
     try self.infix_parse_fns.put(token_type, func);
 }
 

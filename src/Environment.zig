@@ -77,7 +77,7 @@ pub fn set(self: *Environment, key: []const u8, value: *Object.Object) anyerror!
     gop.value_ptr.* = value;
 }
 
-pub fn getBuiltinFunction(key: []const u8) anyerror!?*Object.Object {
+pub inline fn getBuiltinFunction(key: []const u8) anyerror!?*Object.Object {
     return Builtins.bfs_obj_map.get(key);
 }
 

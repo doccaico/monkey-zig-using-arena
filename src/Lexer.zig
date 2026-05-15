@@ -117,7 +117,7 @@ fn readString(self: *Lexer) []const u8 {
     return self.input[position..self.position];
 }
 
-fn peekChar(self: Lexer) ?u8 {
+inline fn peekChar(self: Lexer) ?u8 {
     if (self.read_position >= self.input.len) {
         return null;
     } else {
@@ -125,17 +125,17 @@ fn peekChar(self: Lexer) ?u8 {
     }
 }
 
-fn skipWhitespace(self: *Lexer) void {
+inline fn skipWhitespace(self: *Lexer) void {
     while (self.ch == ' ' or self.ch == '\t' or self.ch == '\n' or self.ch == '\r') {
         self.readChar();
     }
 }
 
-fn isLetter(ch: u8) bool {
+inline fn isLetter(ch: u8) bool {
     return 'a' <= ch and ch <= 'z' or 'A' <= ch and ch <= 'Z' or ch == '_';
 }
 
-fn isDigit(ch: u8) bool {
+inline fn isDigit(ch: u8) bool {
     return '0' <= ch and ch <= '9';
 }
 

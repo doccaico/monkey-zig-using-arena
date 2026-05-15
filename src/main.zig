@@ -3,10 +3,7 @@ const std = @import("std");
 const repl = @import("Repl.zig");
 
 pub fn main(init: std.process.Init) anyerror!void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-
-    const allocator = arena.allocator();
+    const allocator = init.arena.allocator();
 
     var stdin_buf: [1024]u8 = undefined;
     var stdin_reader = std.Io.File.stdin().reader(init.io, &stdin_buf);

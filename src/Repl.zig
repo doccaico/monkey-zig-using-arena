@@ -1,4 +1,4 @@
-const builtin = @import("builtin");
+const native_os = @import("builtin").os.tag;
 const std = @import("std");
 
 const Environment = @import("Environment.zig");
@@ -22,17 +22,16 @@ const MONKEY_FACE =
 ;
 
 pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.Io.Writer) anyerror!void {
-    var line_buf: [1024]u8 = undefined;
-
     const env = try Environment.init(allocator);
+
+    var line_buf: std.ArrayList(u8) = .empty;
+    var aw = std.Io.Writer.Allocating.fromArrayList(allocator, &line_buf);
 
     loop: while (true) {
         try stdout.writeAll(PROMPT);
         try stdout.flush();
 
-        var line_writer = std.Io.Writer.fixed(&line_buf);
-
-        const input_len = stdin.streamDelimiter(&line_writer, '\n') catch |err| switch (err) {
+        const input_len = stdin.streamDelimiter(&aw.writer, '\n') catch |err| switch (err) {
             error.EndOfStream => {
                 try stdout.writeAll("KeyboardInterrupt");
                 break :loop;
@@ -42,12 +41,14 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
 
         stdin.toss(1);
 
-        const line_tmp = if (builtin.os.tag == .windows)
-            line_writer.buffered()[0 .. input_len - 1]
-        else
-            line_writer.buffered();
-
-        const line = try allocator.dupe(u8, line_tmp);
+        const line = blk: {
+            const slice = try aw.toOwnedSlice();
+            const result = switch (native_os) {
+                .windows => slice[0 .. input_len - 1],
+                else => slice(),
+            };
+            break :blk result;
+        };
 
         if (std.mem.eql(u8, line, ":exit")) break :loop;
         if (std.mem.eql(u8, line, ":quit")) break :loop;

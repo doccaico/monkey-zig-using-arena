@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const Allocation = @import("Allocation.zig");
 const Builtins = @import("Builtins.zig");
 const Object = @import("Object.zig");
 
@@ -15,49 +14,43 @@ store: std.StringHashMap(*Object.Object),
 outer: ?*Environment,
 
 pub fn init(allocator: std.mem.Allocator) anyerror!*Environment {
-    // TRUE = createObjectBoolean(allocator, true);
-    // FALSE = createObjectBoolean(allocator, false);
-    // NULL = createObjectNull(allocator);
-
     TRUE = blk: {
-        const new_boolean_obj = try Allocation.createBoolean(allocator);
+        const new_boolean_obj = try allocator.create(Object.Boolean);
         new_boolean_obj.value = true;
 
-        const new_obj = try Allocation.createObject(allocator);
+        const new_obj = try allocator.create(Object.Object);
         new_obj.* = Object.Object{ .boolean = new_boolean_obj };
         break :blk new_obj;
     };
 
     FALSE = blk: {
-        const new_boolean_obj = try Allocation.createBoolean(allocator);
+        const new_boolean_obj = try allocator.create(Object.Boolean);
         new_boolean_obj.value = false;
 
-        const new_obj = try Allocation.createObject(allocator);
+        const new_obj = try allocator.create(Object.Object);
         new_obj.* = Object.Object{ .boolean = new_boolean_obj };
         break :blk new_obj;
     };
 
     NULL = blk: {
-        const new_null_obj = try Allocation.createNull(allocator);
+        const new_null_obj = try allocator.create(Object.Null);
 
-        const new_obj = try Allocation.createObject(allocator);
+        const new_obj = try allocator.create(Object.Object);
         new_obj.* = Object.Object{ .null = new_null_obj };
         break :blk new_obj;
     };
 
     try Builtins.init(allocator);
 
-    const env = try Allocation.createEnvironment(allocator);
-    env.* = Environment{
-        .allocator = allocator,
-        .store = std.StringHashMap(*Object.Object).init(allocator),
-        .outer = null,
-    };
+    const env = try allocator.create(Environment);
+    env.allocator = allocator;
+    env.store = std.StringHashMap(*Object.Object).init(allocator);
+    env.outer = null;
     return env;
 }
 
 pub fn newEnclosedEnvironment(self: *Environment, outer: ?*Environment) anyerror!*Environment {
-    const env = try Allocation.createEnvironment(self.allocator);
+    const env = try self.allocator.create(Environment);
     env.allocator = self.allocator;
     env.store = std.StringHashMap(*Object.Object).init(self.allocator);
     env.outer = outer;

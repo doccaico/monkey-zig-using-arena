@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const Allocation = @import("Allocation.zig");
 const Ast = @import("Ast.zig");
 const Environment = @import("Environment.zig");
 const Object = @import("Object.zig");
@@ -19,7 +18,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
         .statement => |x| {
             switch (x.*) {
                 .return_statement => |y| {
-                    const new_node = try Allocation.createNode(allocator);
+                    const new_node = try allocator.create(Ast.Node);
                     new_node.* = .{ .expression = y.return_value };
 
                     const result = try eval(new_node, env);
@@ -27,22 +26,22 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                         return result;
                     }
 
-                    const new_return_value_obj = try Allocation.createReturnValue(allocator);
+                    const new_return_value_obj = try allocator.create(Object.ReturnValue);
                     new_return_value_obj.value = result.?;
 
-                    const new_obj = try Allocation.createObject(allocator);
+                    const new_obj = try allocator.create(Object.Object);
                     new_obj.* = .{ .return_value = new_return_value_obj };
 
                     return new_obj;
                 },
                 .expression_statement => |y| {
-                    const new_node = try Allocation.createNode(allocator);
+                    const new_node = try allocator.create(Ast.Node);
                     new_node.* = .{ .expression = y.expression };
 
                     return eval(new_node, env);
                 },
                 .let_statement => |y| {
-                    const new_node = try Allocation.createNode(allocator);
+                    const new_node = try allocator.create(Ast.Node);
                     new_node.* = .{ .expression = y.value };
 
                     const result = try eval(new_node, env);
@@ -57,16 +56,16 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
         .expression => |x| {
             switch (x.*) {
                 .integer_literal => |y| {
-                    const new_integer_obj = try Allocation.createInteger(allocator);
+                    const new_integer_obj = try allocator.create(Object.Integer);
                     new_integer_obj.value = y.value;
 
-                    const new_obj = try Allocation.createObject(allocator);
+                    const new_obj = try allocator.create(Object.Object);
                     new_obj.* = .{ .integer = new_integer_obj };
 
                     return new_obj;
                 },
                 .prefix_expression => |y| {
-                    const new_right_node = try Allocation.createNode(allocator);
+                    const new_right_node = try allocator.create(Ast.Node);
                     new_right_node.* = .{ .expression = y.right };
 
                     const right = try eval(new_right_node, env);
@@ -77,7 +76,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                 },
                 .infix_expression => |y| {
                     // left
-                    const new_left_node = try Allocation.createNode(allocator);
+                    const new_left_node = try allocator.create(Ast.Node);
                     new_left_node.* = .{ .expression = y.left };
 
                     const left = try eval(new_left_node, env);
@@ -85,7 +84,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                         return left;
                     }
                     // rigth
-                    const new_right_node = try Allocation.createNode(allocator);
+                    const new_right_node = try allocator.create(Ast.Node);
                     new_right_node.* = .{ .expression = y.right };
 
                     const right = try eval(new_right_node, env);
@@ -105,17 +104,17 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                     return evalIdentifier(y, env);
                 },
                 .function_literal => |y| {
-                    const new_function_obj = try Allocation.createFunction(allocator);
+                    const new_function_obj = try allocator.create(Object.Function);
                     new_function_obj.parameters = y.parameters;
                     new_function_obj.body = y.body;
                     new_function_obj.env = env;
 
-                    const new_obj = try Allocation.createObject(allocator);
+                    const new_obj = try allocator.create(Object.Object);
                     new_obj.* = .{ .function = new_function_obj };
                     return new_obj;
                 },
                 .call_expression => |y| {
-                    const new_node = try Allocation.createNode(allocator);
+                    const new_node = try allocator.create(Ast.Node);
                     new_node.* = .{ .expression = y.function };
 
                     const result = try eval(new_node, env);
@@ -132,10 +131,10 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                     return applyFunction(env, result.?, args);
                 },
                 .string_literal => |y| {
-                    const new_string_obj = try Allocation.createString(allocator);
+                    const new_string_obj = try allocator.create(Object.String);
                     new_string_obj.value = y.value;
 
-                    const new_obj = try Allocation.createObject(allocator);
+                    const new_obj = try allocator.create(Object.Object);
                     new_obj.* = .{ .string = new_string_obj };
 
                     return new_obj;
@@ -146,17 +145,17 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                         return elements.items[0];
                     }
 
-                    const new_array_obj = try Allocation.createArray(allocator);
+                    const new_array_obj = try allocator.create(Object.Array);
                     new_array_obj.elements = elements;
 
-                    const new_obj = try Allocation.createObject(allocator);
+                    const new_obj = try allocator.create(Object.Object);
                     new_obj.* = .{ .array = new_array_obj };
 
                     return new_obj;
                 },
                 .index_expression => |y| {
                     // left
-                    const new_left_node = try Allocation.createNode(allocator);
+                    const new_left_node = try allocator.create(Ast.Node);
                     new_left_node.* = .{ .expression = y.left };
 
                     const left = try eval(new_left_node, env);
@@ -164,7 +163,7 @@ pub fn eval(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
                         return left;
                     }
                     // index
-                    const new_index_node = try Allocation.createNode(allocator);
+                    const new_index_node = try allocator.create(Ast.Node);
                     new_index_node.* = .{ .expression = y.index };
 
                     const index = try eval(new_index_node, env);
@@ -188,7 +187,7 @@ fn evalProgram(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
     var result: ?*Object.Object = null;
 
     for (node.program.statements.items) |stmt| {
-        const new_node = try Allocation.createNode(allocator);
+        const new_node = try allocator.create(Ast.Node);
         new_node.* = .{ .statement = stmt };
 
         result = try eval(new_node, env);
@@ -207,7 +206,7 @@ fn evalProgram(node: *Ast.Node, env: *Environment) anyerror!?*Object.Object {
 fn evalBlockStatement(bs: *Ast.BlockStatement, env: *Environment) anyerror!*Object.Object {
     var result: ?*Object.Object = undefined;
     for (bs.statements.items) |stmt| {
-        const new_node = try Allocation.createNode(allocator);
+        const new_node = try allocator.create(Ast.Node);
         new_node.* = .{ .statement = stmt };
 
         result = try eval(new_node, env);
@@ -224,10 +223,10 @@ fn evalBlockStatement(bs: *Ast.BlockStatement, env: *Environment) anyerror!*Obje
 }
 
 fn evalIntegerLiteral(il: *Ast.IntegerLiteral) *Object.Object {
-    const new_integer_obj = try Allocation.createInteger(allocator);
+    const new_integer_obj = try allocator.create(Object.Integer);
     new_integer_obj.value = il.value;
 
-    const new_obj = try Allocation.createObject(allocator);
+    const new_obj = try allocator.create(Object.Object);
     new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
@@ -238,7 +237,7 @@ fn evalPrefixExpression(operator: []const u8, right: *Object.Object) anyerror!*O
     } else if (std.mem.eql(u8, operator, "-")) {
         return evalPrefixMinusExpression(right);
     } else {
-        return try Allocation.createError(allocator, "unknown operator: {s}{s}", .{ operator, right.getType() });
+        return try createError("unknown operator: {s}{s}", .{ operator, right.getType() });
     }
 }
 
@@ -251,15 +250,15 @@ fn evalPrefixBangExpression(right: *Object.Object) *Object.Object {
 
 fn evalPrefixMinusExpression(right: *Object.Object) anyerror!*Object.Object {
     if (!std.mem.eql(u8, right.getType(), Object.INTEGER_OBJ)) {
-        return try Allocation.createError(allocator, "unknown operator: -{s}", .{right.getType()});
+        return try createError("unknown operator: -{s}", .{right.getType()});
     }
 
     const value = right.integer.value;
 
-    const new_integer_obj = try Allocation.createInteger(allocator);
+    const new_integer_obj = try allocator.create(Object.Integer);
     new_integer_obj.value = -value;
 
-    const new_obj = try Allocation.createObject(allocator);
+    const new_obj = try allocator.create(Object.Object);
     new_obj.* = .{ .integer = new_integer_obj };
     return new_obj;
 }
@@ -278,46 +277,46 @@ fn evalInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Obje
     } else if (std.mem.eql(u8, op, "!=")) {
         return nativeBoolToBooleanObject(left.boolean.value != right.boolean.value);
     } else if (!std.mem.eql(u8, left.getType(), right.getType())) {
-        return try Allocation.createError(allocator, "type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try createError("type mismatch: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     } else {
-        return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try createError("unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 }
 
 fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) anyerror!*Object.Object {
     switch (op[0]) {
         '+' => {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = left.integer.value + right.integer.value;
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '-' => {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = left.integer.value - right.integer.value;
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '*' => {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = left.integer.value * right.integer.value;
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
         '/' => {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = @divTrunc(left.integer.value, right.integer.value);
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
@@ -335,30 +334,30 @@ fn evalIntegerInfixExpression(op: []const u8, left: *Object.Object, right: *Obje
             if (std.mem.eql(u8, op, "!=")) {
                 return nativeBoolToBooleanObject(left.integer.value != right.integer.value);
             }
-            return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+            return try createError("unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
         },
     }
 }
 
 fn evalStringInfixExpression(op: []const u8, left: *Object.Object, right: *Object.Object) anyerror!*Object.Object {
     if (!std.mem.eql(u8, op, "+")) {
-        return try Allocation.createError(allocator, "unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
+        return try createError("unknown operator: {s} {s} {s}", .{ left.getType(), op, right.getType() });
     }
 
     const slice = &[_][]const u8{ left.string.value, right.string.value };
     const s = try std.mem.concat(allocator, u8, slice);
 
-    const new_string_obj = try Allocation.createString(allocator);
+    const new_string_obj = try allocator.create(Object.String);
     new_string_obj.value = s;
 
-    const new_obj = try Allocation.createObject(allocator);
+    const new_obj = try allocator.create(Object.Object);
     new_obj.* = .{ .string = new_string_obj };
 
     return new_obj;
 }
 
 fn evalIfExpression(ie: *Ast.IfExpression, env: *Environment) anyerror!*Object.Object {
-    const new_node = try Allocation.createNode(allocator);
+    const new_node = try allocator.create(Ast.Node);
     new_node.* = .{ .expression = ie.condition };
 
     const condition = try eval(new_node, env);
@@ -383,13 +382,13 @@ fn evalIdentifier(ident: *Ast.Identifier, env: *Environment) anyerror!*Object.Ob
     if (builtin != null) {
         return builtin.?;
     }
-    return try Allocation.createError(allocator, "identifier not found: {s}", .{ident.value});
+    return try createError("identifier not found: {s}", .{ident.value});
 }
 
 fn evalExpressions(exps: std.ArrayList(*Ast.Expression), env: *Environment) anyerror!std.ArrayList(*Object.Object) {
     var result: std.ArrayList(*Object.Object) = .empty;
     for (exps.items) |e| {
-        const new_node = try Allocation.createNode(allocator);
+        const new_node = try allocator.create(Ast.Node);
         new_node.* = .{ .expression = e };
 
         if (try eval(new_node, env)) |evaluated| {
@@ -413,7 +412,7 @@ fn applyFunction(env: *Environment, func: *Object.Object, args: std.ArrayList(*O
         .builtin => |x| {
             return x.function(args);
         },
-        else => return try Allocation.createError(allocator, "not a function: {s}", .{func.getType()}),
+        else => return try createError("not a function: {s}", .{func.getType()}),
     }
 }
 
@@ -440,7 +439,7 @@ fn evalIndexExpression(left: *Object.Object, index: *Object.Object) anyerror!*Ob
     } else if (std.mem.eql(u8, left.getType(), Object.HASH_OBJ)) {
         return evalHashIndexExpression(left, index);
     } else {
-        return try Allocation.createError(allocator, "index operator not supported: {s}", .{left.getType()});
+        return try createError("index operator not supported: {s}", .{left.getType()});
     }
 }
 
@@ -464,7 +463,7 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) anyerror!*Object.O
         const key_node = entry.key_ptr.*;
         const value_node = entry.value_ptr.*;
 
-        const new_key_node = try Allocation.createNode(allocator);
+        const new_key_node = try allocator.create(Ast.Node);
         new_key_node.* = .{ .expression = key_node };
         var key = try eval(new_key_node, env);
 
@@ -477,10 +476,10 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) anyerror!*Object.O
             .boolean => |x| hk = Object.Object{ .boolean = x },
             .integer => |x| hk = Object.Object{ .integer = x },
             .string => |x| hk = Object.Object{ .string = x },
-            else => return try Allocation.createError(allocator, "unusable as hash key: {s}", .{key.?.getType()}),
+            else => return try createError("unusable as hash key: {s}", .{key.?.getType()}),
         }
 
-        const new_value_node = try Allocation.createNode(allocator);
+        const new_value_node = try allocator.create(Ast.Node);
         new_value_node.* = .{ .expression = value_node };
         const value = try eval(new_value_node, env);
 
@@ -495,10 +494,10 @@ fn evalHashLiteral(node: *Ast.HashLiteral, env: *Environment) anyerror!*Object.O
         });
     }
 
-    const new_hash_obj = try Allocation.createHash(allocator);
+    const new_hash_obj = try allocator.create(Object.Hash);
     new_hash_obj.pairs = pairs;
 
-    const new_obj = try Allocation.createObject(allocator);
+    const new_obj = try allocator.create(Object.Object);
     new_obj.* = .{ .hash = new_hash_obj };
     return new_obj;
 }
@@ -511,7 +510,7 @@ fn evalHashIndexExpression(hash: *Object.Object, index: *Object.Object) anyerror
         .boolean => |x| key = Object.Object{ .boolean = x },
         .integer => |x| key = Object.Object{ .integer = x },
         .string => |x| key = Object.Object{ .string = x },
-        else => return try Allocation.createError(allocator, "unusable as hash key: {s}", .{index.getType()}),
+        else => return try createError("unusable as hash key: {s}", .{index.getType()}),
     }
     const pair = hash_obj.pairs.get(Object.hashKey(key)) orelse return Environment.NULL;
     return pair.value;
@@ -536,6 +535,17 @@ fn nativeBoolToBooleanObject(input: bool) *Object.Object {
     } else {
         return Environment.FALSE;
     }
+}
+
+pub fn createError(comptime format: []const u8, args: anytype) anyerror!*Object.Object {
+    const message = try std.fmt.allocPrint(allocator, format, args);
+
+    const new_error_obj = try allocator.create(Object.Error);
+    new_error_obj.message = message;
+
+    const new_obj = try allocator.create(Object.Object);
+    new_obj.* = .{ .@"error" = new_error_obj };
+    return new_obj;
 }
 
 fn isError(obj: ?*Object.Object) bool {

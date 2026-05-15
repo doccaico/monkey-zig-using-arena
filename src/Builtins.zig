@@ -1,8 +1,8 @@
 const std = @import("std");
 
-const Allocation = @import("Allocation.zig");
 const Environment = @import("Environment.zig");
 const Object = @import("Object.zig");
+const createError = @import("Evaluator.zig").createError;
 
 var allocator: std.mem.Allocator = undefined;
 pub var bfs_obj_map: std.StringHashMap(*Object.Object) = undefined;
@@ -20,10 +20,10 @@ pub fn init(builtins_allocator: std.mem.Allocator) anyerror!void {
     bfs_obj_map = std.StringHashMap(*Object.Object).init(allocator);
 
     for (bfs.keys()) |k| {
-        const new_builtin_obj = try Allocation.createBuiltin(allocator);
+        const new_builtin_obj = try allocator.create(Object.Builtin);
         new_builtin_obj.function = bfs.get(k).?;
 
-        const new_obj = try Allocation.createObject(allocator);
+        const new_obj = try allocator.create(Object.Object);
         new_obj.* = Object.Object{ .builtin = new_builtin_obj };
 
         try bfs_obj_map.put(k, new_obj);
@@ -34,37 +34,37 @@ pub fn init(builtins_allocator: std.mem.Allocator) anyerror!void {
 
 fn len(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 1) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     switch (args.items[0].*) {
         .array => |x| {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = @intCast(x.elements.items.len);
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = Object.Object{ .integer = new_integer_obj };
 
             return new_obj;
         },
         .string => |x| {
-            const new_integer_obj = try Allocation.createInteger(allocator);
+            const new_integer_obj = try allocator.create(Object.Integer);
             new_integer_obj.value = @intCast(x.value.len);
 
-            const new_obj = try Allocation.createObject(allocator);
+            const new_obj = try allocator.create(Object.Object);
             new_obj.* = Object.Object{ .integer = new_integer_obj };
 
             return new_obj;
         },
-        else => return try Allocation.createError(allocator, "argument to `len` not supported, got {s}", .{args.items[0].getType()}),
+        else => return try createError("argument to `len` not supported, got {s}", .{args.items[0].getType()}),
     }
 }
 
 fn first(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 1) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return try Allocation.createError(allocator, "argument to `first` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return try createError("argument to `first` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -76,10 +76,10 @@ fn first(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
 
 fn last(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 1) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return try Allocation.createError(allocator, "argument to `last` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return try createError("argument to `last` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -92,10 +92,10 @@ fn last(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
 
 fn rest(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 1) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return try Allocation.createError(allocator, "argument to `rest` must be ARRAY, got {s}", .{args.items[0].getType()});
+        return try createError("argument to `rest` must be ARRAY, got {s}", .{args.items[0].getType()});
     }
 
     const arr = args.items[0].array;
@@ -104,10 +104,10 @@ fn rest(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
         var new_elements = try std.ArrayList(*Object.Object).initCapacity(allocator, length - 1);
         new_elements.appendSliceAssumeCapacity(arr.elements.items[1..length]);
 
-        const new_array_obj = try Allocation.createArray(allocator);
+        const new_array_obj = try allocator.create(Object.Array);
         new_array_obj.elements = new_elements;
 
-        const new_obj = try Allocation.createObject(allocator);
+        const new_obj = try allocator.create(Object.Object);
         new_obj.* = Object.Object{ .array = new_array_obj };
 
         return new_obj;
@@ -117,10 +117,10 @@ fn rest(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
 
 fn push(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 2) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=2", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=2", .{args.items.len});
     }
     if (!std.mem.eql(u8, args.items[0].getType(), Object.ARRAY_OBJ)) {
-        return try Allocation.createError(allocator, "argument to `push` must be {s}, got {s}", .{ Object.ARRAY_OBJ, args.items[0].getType() });
+        return try createError("argument to `push` must be {s}, got {s}", .{ Object.ARRAY_OBJ, args.items[0].getType() });
     }
 
     const arr = args.items[0].array;
@@ -131,17 +131,17 @@ fn push(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     new_elements.items.len = length + 1;
     new_elements.items[length] = args.items[1];
 
-    const new_array_obj = try Allocation.createArray(allocator);
+    const new_array_obj = try allocator.create(Object.Array);
     new_array_obj.elements = new_elements;
 
-    const new_obj = try Allocation.createObject(allocator);
+    const new_obj = try allocator.create(Object.Object);
     new_obj.* = Object.Object{ .array = new_array_obj };
     return new_obj;
 }
 
 fn puts(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     if (args.items.len != 1) {
-        return try Allocation.createError(allocator, "wrong number of arguments. got={d}, want=1", .{args.items.len});
+        return try createError("wrong number of arguments. got={d}, want=1", .{args.items.len});
     }
 
     const obj = args.items[0];
@@ -150,7 +150,7 @@ fn puts(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
             return obj;
         },
         else => {
-            return try Allocation.createError(allocator, "wrong type. got={s}, want={s}, {s}", .{ obj.getType(), Object.INTEGER_OBJ, Object.STRING_OBJ });
+            return try createError("wrong type. got={s}, want={s}, {s}", .{ obj.getType(), Object.INTEGER_OBJ, Object.STRING_OBJ });
         },
     }
     return Environment.NULL;

@@ -127,7 +127,6 @@ pub fn parseProgram(self: *Parser) anyerror!*Ast.Node {
         try node.program.statements.append(self.allocator, stmt);
         self.nextToken();
     }
-
     return node;
 }
 
@@ -140,7 +139,8 @@ fn parseStatement(self: *Parser) anyerror!*Ast.Statement {
 }
 
 fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
-    const ls = try Ast.LetStatement.init(self.allocator, self.cur_token);
+    const ls = try self.allocator.create(Ast.LetStatement);
+    ls.token = self.cur_token;
 
     if (self.nextTokenIs(.ident)) {
         self.nextToken();
@@ -174,7 +174,8 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
 }
 
 fn parseReturnStatement(self: *Parser) anyerror!*Ast.Statement {
-    const rs = try Ast.ReturnStatement.init(self.allocator, self.cur_token);
+    const rs = try self.allocator.create(Ast.ReturnStatement);
+    rs.token = self.cur_token;
 
     self.nextToken();
 
@@ -190,7 +191,8 @@ fn parseReturnStatement(self: *Parser) anyerror!*Ast.Statement {
 }
 
 fn parseExpressionStatement(self: *Parser) anyerror!*Ast.Statement {
-    const es = try Ast.ExpressionStatement.init(self.allocator, self.cur_token);
+    const es = try self.allocator.create(Ast.ExpressionStatement);
+    es.token = self.cur_token;
     es.expression = try self.parseExpression(.lowest);
 
     if (self.nextTokenIs(.semicolon)) {
@@ -345,7 +347,10 @@ fn parseIfExpression(self: *Parser) anyerror!*Ast.Expression {
 }
 
 fn parseBlockStatement(self: *Parser) anyerror!*Ast.BlockStatement {
-    var bs = try Ast.BlockStatement.init(self.allocator, self.cur_token);
+    const bs = try self.allocator.create(Ast.BlockStatement);
+    bs.token = self.cur_token;
+    bs.statements = .empty;
+
     self.nextToken();
 
     while (!self.curTokenIs(.rbrace) and !self.curTokenIs(.eof)) {
@@ -357,7 +362,9 @@ fn parseBlockStatement(self: *Parser) anyerror!*Ast.BlockStatement {
 }
 
 fn parseFunctionLiteral(self: *Parser) anyerror!*Ast.Expression {
-    var fl = try Ast.FunctionLiteral.init(self.allocator, self.cur_token);
+    const fl = try self.allocator.create(Ast.FunctionLiteral);
+    fl.token = self.cur_token;
+    fl.parameters = .empty;
 
     if (self.nextTokenIs(.lparen)) {
         self.nextToken();
@@ -411,12 +418,14 @@ fn parseFunctionParameters(self: *Parser, params: *std.ArrayList(*Ast.Identifier
 }
 
 fn parseCallExpression(self: *Parser, function: *Ast.Expression) anyerror!*Ast.Expression {
-    var call_expr = try Ast.CallExpression.init(self.allocator, self.cur_token, function);
-    call_expr.arguments = try self.parseExpressionList(.rparen);
+    const ce = try self.allocator.create(Ast.CallExpression);
+    ce.token = self.cur_token;
+    ce.function = function;
+    ce.arguments = try self.parseExpressionList(.rparen);
 
-    const e = self.allocator.create(Ast.Expression) catch @panic("OOM");
-    e.* = Ast.Expression{ .call_expression = call_expr };
-    return e;
+    const expr = self.allocator.create(Ast.Expression) catch @panic("OOM");
+    expr.* = Ast.Expression{ .call_expression = ce };
+    return expr;
 }
 
 fn parseCallArguments(self: *Parser, args: *std.ArrayList(*Ast.Expression)) anyerror!void {

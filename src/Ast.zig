@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const Allocation = @import("Allocation.zig");
 const ParserError = @import("Parser.zig").ParserError;
 const Token = @import("Token.zig");
 
@@ -20,11 +19,11 @@ pub const Program = struct {
     statements: std.ArrayList(*Statement),
 
     pub fn init(allocator: std.mem.Allocator) anyerror!*Node {
-        var prg = try Allocation.createProgram(allocator);
+        const prg = try allocator.create(Program);
         prg.statements = .empty;
 
-        const node = try Allocation.createNode(allocator);
-        node.* = Node{ .program = prg };
+        const node = try allocator.create(Node);
+        node.* = .{ .program = prg };
         return node;
     }
 
@@ -71,12 +70,6 @@ pub const LetStatement = struct {
     name: *Identifier,
     value: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*LetStatement {
-        const ls = try Allocation.createLetStatement(allocator);
-        ls.token = token;
-        return ls;
-    }
-
     pub fn tokenLiteral(self: LetStatement) []const u8 {
         return self.token.literal;
     }
@@ -94,12 +87,6 @@ pub const ReturnStatement = struct {
     token: Token,
     return_value: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*ReturnStatement {
-        const rs = try Allocation.createReturnStatement(allocator);
-        rs.token = token;
-        return rs;
-    }
-
     pub fn tokenLiteral(self: ReturnStatement) []const u8 {
         return self.token.literal;
     }
@@ -115,12 +102,6 @@ pub const ExpressionStatement = struct {
     token: Token,
     expression: *Expression,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*ExpressionStatement {
-        const es = try Allocation.createExpressionStatement(allocator);
-        es.token = token;
-        return es;
-    }
-
     pub fn tokenLiteral(self: ExpressionStatement) []const u8 {
         return self.token.literal;
     }
@@ -133,13 +114,6 @@ pub const ExpressionStatement = struct {
 pub const BlockStatement = struct {
     token: Token,
     statements: std.ArrayList(*Statement),
-
-    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*BlockStatement {
-        const bs = try Allocation.createBlockStatement(allocator);
-        bs.token = token;
-        bs.statements = .empty;
-        return bs;
-    }
 
     pub fn tokenLiteral(self: BlockStatement) []const u8 {
         return self.token.literal;
@@ -287,14 +261,6 @@ pub const FunctionLiteral = struct {
     parameters: std.ArrayList(*Identifier),
     body: *BlockStatement,
 
-    pub fn init(allocator: std.mem.Allocator, token: Token) anyerror!*FunctionLiteral {
-        const f = try Allocation.createFunctionLiteral(allocator);
-        f.token = token;
-        f.parameters = .empty;
-        f.body = undefined;
-        return f;
-    }
-
     pub fn tokenLiteral(self: FunctionLiteral) []const u8 {
         return self.token.literal;
     }
@@ -319,14 +285,6 @@ pub const CallExpression = struct {
     token: Token,
     function: *Expression,
     arguments: std.ArrayList(*Expression),
-
-    pub fn init(allocator: std.mem.Allocator, token: Token, function: *Expression) anyerror!*CallExpression {
-        const ce = try Allocation.createCallExpression(allocator);
-        ce.token = token;
-        ce.function = function;
-        ce.arguments = .empty;
-        return ce;
-    }
 
     pub fn tokenLiteral(self: CallExpression) []const u8 {
         return self.token.literal;

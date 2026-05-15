@@ -24,7 +24,7 @@ pub fn init(builtins_allocator: std.mem.Allocator) anyerror!void {
         new_builtin_obj.function = bfs.get(k).?;
 
         const new_obj = try allocator.create(Object.Object);
-        new_obj.* = Object.Object{ .builtin = new_builtin_obj };
+        new_obj.* = .{ .builtin = new_builtin_obj };
 
         try bfs_obj_map.put(k, new_obj);
     }
@@ -42,7 +42,7 @@ fn len(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
             new_integer_obj.value = @intCast(x.elements.items.len);
 
             const new_obj = try allocator.create(Object.Object);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -51,7 +51,7 @@ fn len(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
             new_integer_obj.value = @intCast(x.value.len);
 
             const new_obj = try allocator.create(Object.Object);
-            new_obj.* = Object.Object{ .integer = new_integer_obj };
+            new_obj.* = .{ .integer = new_integer_obj };
 
             return new_obj;
         },
@@ -108,7 +108,7 @@ fn rest(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
         new_array_obj.elements = new_elements;
 
         const new_obj = try allocator.create(Object.Object);
-        new_obj.* = Object.Object{ .array = new_array_obj };
+        new_obj.* = .{ .array = new_array_obj };
 
         return new_obj;
     }
@@ -135,7 +135,7 @@ fn push(args: std.ArrayList(*Object.Object)) anyerror!*Object.Object {
     new_array_obj.elements = new_elements;
 
     const new_obj = try allocator.create(Object.Object);
-    new_obj.* = Object.Object{ .array = new_array_obj };
+    new_obj.* = .{ .array = new_array_obj };
     return new_obj;
 }
 

@@ -27,50 +27,50 @@ pub fn nextToken(self: *Lexer) Token {
             if (self.peekChar()) |c| {
                 if (c == '=') {
                     self.readChar();
-                    token = Token{ .type = .eq, .literal = "==" };
+                    token = .{ .type = .eq, .literal = "==" };
                 } else {
-                    token = Token{ .type = .assign, .literal = "=" };
+                    token = .{ .type = .assign, .literal = "=" };
                 }
             }
         },
-        '+' => token = Token{ .type = .plus, .literal = "+" },
-        '-' => token = Token{ .type = .minus, .literal = "-" },
+        '+' => token = .{ .type = .plus, .literal = "+" },
+        '-' => token = .{ .type = .minus, .literal = "-" },
         '!' => {
             if (self.peekChar()) |c| {
                 if (c == '=') {
                     self.readChar();
-                    token = Token{ .type = .noteq, .literal = "!=" };
+                    token = .{ .type = .noteq, .literal = "!=" };
                 } else {
-                    token = Token{ .type = .bang, .literal = "!" };
+                    token = .{ .type = .bang, .literal = "!" };
                 }
             }
         },
-        '/' => token = Token{ .type = .slash, .literal = "/" },
-        '*' => token = Token{ .type = .asterisk, .literal = "*" },
-        '<' => token = Token{ .type = .lt, .literal = "<" },
-        '>' => token = Token{ .type = .gt, .literal = ">" },
-        ';' => token = Token{ .type = .semicolon, .literal = ";" },
-        ',' => token = Token{ .type = .comma, .literal = "," },
-        '(' => token = Token{ .type = .lparen, .literal = "(" },
-        ')' => token = Token{ .type = .rparen, .literal = ")" },
-        '{' => token = Token{ .type = .lbrace, .literal = "{" },
-        '}' => token = Token{ .type = .rbrace, .literal = "}" },
-        '[' => token = Token{ .type = .lbracket, .literal = "[" },
-        ']' => token = Token{ .type = .rbracket, .literal = "]" },
-        ':' => token = Token{ .type = .colon, .literal = ":" },
-        '"' => token = Token{ .type = .string, .literal = self.readString() },
-        '\u{0}' => token = Token{ .type = .eof, .literal = "" },
+        '/' => token = .{ .type = .slash, .literal = "/" },
+        '*' => token = .{ .type = .asterisk, .literal = "*" },
+        '<' => token = .{ .type = .lt, .literal = "<" },
+        '>' => token = .{ .type = .gt, .literal = ">" },
+        ';' => token = .{ .type = .semicolon, .literal = ";" },
+        ',' => token = .{ .type = .comma, .literal = "," },
+        '(' => token = .{ .type = .lparen, .literal = "(" },
+        ')' => token = .{ .type = .rparen, .literal = ")" },
+        '{' => token = .{ .type = .lbrace, .literal = "{" },
+        '}' => token = .{ .type = .rbrace, .literal = "}" },
+        '[' => token = .{ .type = .lbracket, .literal = "[" },
+        ']' => token = .{ .type = .rbracket, .literal = "]" },
+        ':' => token = .{ .type = .colon, .literal = ":" },
+        '"' => token = .{ .type = .string, .literal = self.readString() },
+        '\u{0}' => token = .{ .type = .eof, .literal = "" },
         else => {
             if (isLetter(self.ch)) {
                 const ident_literal = self.readIdentifier();
-                token = Token{ .type = Token.lookupIdent(ident_literal), .literal = ident_literal };
+                token = .{ .type = Token.lookupIdent(ident_literal), .literal = ident_literal };
                 return token;
             } else if (isDigit(self.ch)) {
-                token = Token{ .type = .int, .literal = self.readNumber() };
+                token = .{ .type = .int, .literal = self.readNumber() };
                 return token;
             } else {
                 const illegal_literal = self.input[self.position .. self.position + 1];
-                token = Token{ .type = .illegal, .literal = illegal_literal };
+                token = .{ .type = .illegal, .literal = illegal_literal };
             }
         },
     }

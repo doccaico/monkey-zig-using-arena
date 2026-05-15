@@ -19,7 +19,7 @@ pub fn init(allocator: std.mem.Allocator) anyerror!*Environment {
         new_boolean_obj.value = true;
 
         const new_obj = try allocator.create(Object.Object);
-        new_obj.* = Object.Object{ .boolean = new_boolean_obj };
+        new_obj.* = .{ .boolean = new_boolean_obj };
         break :blk new_obj;
     };
 
@@ -28,7 +28,7 @@ pub fn init(allocator: std.mem.Allocator) anyerror!*Environment {
         new_boolean_obj.value = false;
 
         const new_obj = try allocator.create(Object.Object);
-        new_obj.* = Object.Object{ .boolean = new_boolean_obj };
+        new_obj.* = .{ .boolean = new_boolean_obj };
         break :blk new_obj;
     };
 
@@ -36,7 +36,7 @@ pub fn init(allocator: std.mem.Allocator) anyerror!*Environment {
         const new_null_obj = try allocator.create(Object.Null);
 
         const new_obj = try allocator.create(Object.Object);
-        new_obj.* = Object.Object{ .null = new_null_obj };
+        new_obj.* = .{ .null = new_null_obj };
         break :blk new_obj;
     };
 

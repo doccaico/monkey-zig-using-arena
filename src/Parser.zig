@@ -169,7 +169,7 @@ fn parseLetStatement(self: *Parser) anyerror!*Ast.Statement {
     }
 
     const s = try self.allocator.create(Ast.Statement);
-    s.* = Ast.Statement{ .let_statement = ls };
+    s.* = .{ .let_statement = ls };
     return s;
 }
 
@@ -186,7 +186,7 @@ fn parseReturnStatement(self: *Parser) anyerror!*Ast.Statement {
     }
 
     const s = try self.allocator.create(Ast.Statement);
-    s.* = Ast.Statement{ .return_statement = rs };
+    s.* = .{ .return_statement = rs };
     return s;
 }
 
@@ -200,7 +200,7 @@ fn parseExpressionStatement(self: *Parser) anyerror!*Ast.Statement {
     }
 
     const s = try self.allocator.create(Ast.Statement);
-    s.* = Ast.Statement{ .expression_statement = es };
+    s.* = .{ .expression_statement = es };
     return s;
 }
 
@@ -228,7 +228,7 @@ fn parseIdentifier(self: *Parser) anyerror!*Ast.Expression {
     ident.value = self.cur_token.literal;
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .identifier = ident };
+    e.* = .{ .identifier = ident };
     return e;
 }
 
@@ -241,7 +241,7 @@ fn parseIntegerLiteral(self: *Parser) anyerror!*Ast.Expression {
     };
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .integer_literal = ilit };
+    e.* = .{ .integer_literal = ilit };
     return e;
 }
 
@@ -255,7 +255,7 @@ fn parsePrefixExpression(self: *Parser) anyerror!*Ast.Expression {
     pe.right = try self.parseExpression(.prefix);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .prefix_expression = pe };
+    e.* = .{ .prefix_expression = pe };
     return e;
 }
 
@@ -272,7 +272,7 @@ fn parseInfixExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expr
     ie.right = try self.parseExpression(precedence);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .infix_expression = ie };
+    e.* = .{ .infix_expression = ie };
     return e;
 }
 
@@ -282,7 +282,7 @@ fn parseBooleanExpression(self: *Parser) anyerror!*Ast.Expression {
     b.value = self.curTokenIs(.true);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .boolean = b };
+    e.* = .{ .boolean = b };
     return e;
 }
 
@@ -342,7 +342,7 @@ fn parseIfExpression(self: *Parser) anyerror!*Ast.Expression {
     }
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .if_expression = ie };
+    e.* = .{ .if_expression = ie };
     return e;
 }
 
@@ -383,7 +383,7 @@ fn parseFunctionLiteral(self: *Parser) anyerror!*Ast.Expression {
     fl.body = try self.parseBlockStatement();
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .function_literal = fl };
+    e.* = .{ .function_literal = fl };
     return e;
 }
 
@@ -424,7 +424,7 @@ fn parseCallExpression(self: *Parser, function: *Ast.Expression) anyerror!*Ast.E
     ce.arguments = try self.parseExpressionList(.rparen);
 
     const expr = try self.allocator.create(Ast.Expression);
-    expr.* = Ast.Expression{ .call_expression = ce };
+    expr.* = .{ .call_expression = ce };
     return expr;
 }
 
@@ -458,7 +458,7 @@ fn parseStringLiteral(self: *Parser) anyerror!*Ast.Expression {
     s.value = self.cur_token.literal;
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .string_literal = s };
+    e.* = .{ .string_literal = s };
     return e;
 }
 
@@ -469,7 +469,7 @@ fn parseArrayLiteral(self: *Parser) anyerror!*Ast.Expression {
     a.elements = try self.parseExpressionList(.rbracket);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .array_literal = a };
+    e.* = .{ .array_literal = a };
     return e;
 }
 
@@ -513,7 +513,7 @@ fn parseIndexExpression(self: *Parser, left: *Ast.Expression) anyerror!*Ast.Expr
     }
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .index_expression = ie };
+    e.* = .{ .index_expression = ie };
     return e;
 }
 
@@ -553,7 +553,7 @@ fn parseHashLiteral(self: *Parser) anyerror!*Ast.Expression {
     }
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .hash_literal = h };
+    e.* = .{ .hash_literal = h };
     return e;
 }
 
@@ -565,7 +565,7 @@ fn peekStatementError(self: *Parser, expected: TokenType) anyerror!*Ast.Statemen
     try self.errors.append(self.allocator, msg);
 
     const s = try self.allocator.create(Ast.Statement);
-    s.* = Ast.Statement{ .@"error" = ParserError.UnexpectedToken };
+    s.* = .{ .@"error" = ParserError.UnexpectedToken };
     return s;
 }
 
@@ -575,7 +575,7 @@ fn peekExpressionError(self: *Parser, expected: TokenType) anyerror!*Ast.Express
     try self.errors.append(self.allocator, msg);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .@"error" = ParserError.UnexpectedToken };
+    e.* = .{ .@"error" = ParserError.UnexpectedToken };
     return e;
 }
 
@@ -585,7 +585,7 @@ fn noPrefixParseFnError(self: *Parser, literal: []const u8) anyerror!*Ast.Expres
     try self.errors.append(self.allocator, msg);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .@"error" = ParserError.NoPrefixParseFunction };
+    e.* = .{ .@"error" = ParserError.NoPrefixParseFunction };
     return e;
 }
 
@@ -595,7 +595,7 @@ fn conversionError(self: *Parser, literal: []const u8) anyerror!*Ast.Expression 
     try self.errors.append(self.allocator, msg);
 
     const e = try self.allocator.create(Ast.Expression);
-    e.* = Ast.Expression{ .@"error" = ParserError.ConversionFailed };
+    e.* = .{ .@"error" = ParserError.ConversionFailed };
     return e;
 }
 

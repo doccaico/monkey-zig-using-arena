@@ -558,10 +558,10 @@ fn isError(obj: ?*Object.Object) bool {
 
 // tests
 
-test "TestEvalIntegerExpression" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
+const Lexer = @import("Lexer.zig");
+const Parser = @import("Parser.zig");
 
+test "TestEvalIntegerExpression" {
     const Test = struct {
         []const u8,
         i64,
@@ -613,9 +613,6 @@ test "TestEvalIntegerExpression" {
 }
 
 test "TestEvalBooleanExpression" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         bool,
@@ -671,9 +668,6 @@ test "TestEvalBooleanExpression" {
 }
 
 test "TestBangOperator" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         bool,
@@ -714,9 +708,6 @@ test "TestBangOperator" {
 }
 
 test "TestIfElseExpressions" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const null_value = -256;
     const Test = struct {
         []const u8,
@@ -767,9 +758,6 @@ test "TestIfElseExpressions" {
 }
 
 test "TestReturnStatements" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         i64,
@@ -808,9 +796,6 @@ test "TestReturnStatements" {
 }
 
 test "TestErrorHandling" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         []const u8,
@@ -891,9 +876,6 @@ test "TestErrorHandling" {
 }
 
 test "TestLetStatements" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         i64,
@@ -932,9 +914,6 @@ test "TestLetStatements" {
 }
 
 test "TestFunctionObject" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const input = "fn(x) { x + 2; };";
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -977,9 +956,6 @@ test "TestFunctionObject" {
 }
 
 test "TestFunctionApplication" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Test = struct {
         []const u8,
         i64,
@@ -1020,9 +996,6 @@ test "TestFunctionApplication" {
 }
 
 test "TestClosures" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const input =
         \\let newAdder = fn(x) {
         \\  fn(y) { x + y };
@@ -1057,9 +1030,6 @@ test "TestClosures" {
 }
 
 test "TestStringLiteral" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const input =
         \\"Hello World!"
     ;
@@ -1089,9 +1059,6 @@ test "TestStringLiteral" {
 }
 
 test "TestStringConcatenation" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const input =
         \\"Hello" + " " + "World!";
     ;
@@ -1121,9 +1088,6 @@ test "TestStringConcatenation" {
 }
 
 test "TestBuiltinFunctions" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const Types1 = union(enum) {
         string: []const u8,
         integer: i64,
@@ -1177,9 +1141,6 @@ test "TestBuiltinFunctions" {
 }
 
 test "TestArrayLiterals" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const input = "[1, 2 * 2, 3 + 3]";
 
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
@@ -1217,9 +1178,6 @@ test "TestArrayLiterals" {
 }
 
 test "TestArrayIndexExpressions" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const null_value = -256;
     const Test = struct {
         []const u8,
@@ -1303,9 +1261,6 @@ test "TestArrayIndexExpressions" {
 }
 
 test "TestHashLiterals" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
 
@@ -1402,9 +1357,6 @@ test "TestHashLiterals" {
 }
 
 test "TestHashIndexExpressions" {
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
-
     const null_value = -256;
     const Test = struct {
         []const u8,

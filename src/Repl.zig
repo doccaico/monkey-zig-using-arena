@@ -1,5 +1,5 @@
-const native_os = @import("builtin").os.tag;
 const std = @import("std");
+const native_os = @import("builtin").os.tag;
 
 const Environment = @import("Environment.zig");
 const Evaluator = @import("Evaluator.zig");
@@ -45,7 +45,7 @@ pub fn start(allocator: std.mem.Allocator, stdin: *std.Io.Reader, stdout: *std.I
             const slice = try aw.toOwnedSlice();
             const result = switch (native_os) {
                 .windows => slice[0 .. input_len - 1],
-                else => slice(),
+                else => slice,
             };
             break :blk result;
         };

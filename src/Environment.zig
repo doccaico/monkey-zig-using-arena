@@ -70,22 +70,18 @@ pub fn get(self: Environment, key: []const u8) ?*Object.Object {
 }
 
 pub fn set(self: *Environment, key: []const u8, value: *Object.Object) anyerror!void {
-    const gop = try self.store.getOrPut(key);
-    if (!gop.found_existing) {
-        gop.key_ptr.* = try self.allocator.dupe(u8, key);
-    }
-    gop.value_ptr.* = value;
+    try self.store.put(key, value);
 }
 
 pub inline fn getBuiltinFunction(key: []const u8) anyerror!?*Object.Object {
     return Builtins.bfs_obj_map.get(key);
 }
 
-test "TestEnvironment" {
-    const Evaluator = @import("Evaluator.zig");
-    const Lexer = @import("Lexer.zig");
-    const Parser = @import("Parser.zig");
+const Evaluator = @import("Evaluator.zig");
+const Lexer = @import("Lexer.zig");
+const Parser = @import("Parser.zig");
 
+test "TestEnvironment" {
     const Test = struct {
         []const u8,
         i64,
